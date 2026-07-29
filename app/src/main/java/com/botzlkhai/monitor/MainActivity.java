@@ -12,8 +12,8 @@ import android.widget.FrameLayout;
 
 public class MainActivity extends Activity {
 
-    // Đổi URL này sang trang dashboard/index.html đã upload lên host
-    private static final String DASHBOARD_URL = "https://zrmteam.x10.mx/app-bot-zeplo/dashboard/index.html";
+    // Host này không có SSL -> dùng http, đã bật cleartext trong AndroidManifest.xml
+    private static final String DASHBOARD_URL = "http://zrmteam.x10.mx/app-bot-zeplo/dashboard/index.html";
 
     private WebView webView;
 
@@ -32,11 +32,11 @@ public class MainActivity extends Activity {
         ws.setJavaScriptEnabled(true);
         ws.setDomStorageEnabled(true);
         ws.setCacheMode(WebSettings.LOAD_DEFAULT);
+        ws.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         webView.setWebViewClient(new WebViewClient());
 
         root.addView(webView);
 
-        // Nút refresh nổi góc dưới phải (thay cho pull-to-refresh)
         Button refreshBtn = new Button(this);
         refreshBtn.setText("↻");
         FrameLayout.LayoutParams btnParams = new FrameLayout.LayoutParams(
