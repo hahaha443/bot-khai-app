@@ -282,7 +282,7 @@ public class MainActivity extends Activity {
         row1.setPadding(24, 16, 24, 0);
         LinearLayout c1 = card("Uptime");
         uptimeVal = valText("-"); c1.addView(uptimeVal);
-        LinearLayout c2 = card("Pin °C / RAM");
+        LinearLayout c2 = card("Nhiệt độ / RAM");
         sysVal = valText("-"); c2.addView(sysVal);
         row1.addView(c1); row1.addView(c2);
         contentArea.addView(row1);
@@ -613,7 +613,10 @@ public class MainActivity extends Activity {
                     uptimeVal.setText(online ? (s/3600) + "h " + ((s%3600)/60) + "m" : "-");
                 }
                 if (sysVal != null) {
-                    String temp = res.isNull("battery_temp") ? "-" : res.optDouble("battery_temp") + "°C";
+                    boolean hasCpu = !res.isNull("cpu_temp");
+                    boolean hasBattery = !res.isNull("battery_temp");
+                    String temp = hasCpu ? (res.optDouble("cpu_temp") + "°C")
+                                : hasBattery ? (res.optDouble("battery_temp") + "°C") : "-";
                     String ram = res.isNull("ram_percent") ? "-" : res.optDouble("ram_percent") + "%";
                     sysVal.setText(temp + " / " + ram);
                 }
