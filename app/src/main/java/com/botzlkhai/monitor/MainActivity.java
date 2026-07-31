@@ -46,6 +46,8 @@ public class MainActivity extends Activity {
     private static final int ACC = Color.parseColor("#4f8cff");
     private static final int OK = Color.parseColor("#2ecc71");
     private static final int BAD = Color.parseColor("#e74c3c");
+    private static final String NOT_LINKED_MSG =
+            "🔒 Chưa liên kết token quản lý bot — vào tab Token, dán token rồi bấm Liên kết để xem được mục này.";
     private static final int TXT = Color.parseColor("#e6e9ef");
     private static final int SUB = Color.parseColor("#8b93a5");
 
@@ -333,6 +335,10 @@ public class MainActivity extends Activity {
         io.execute(() -> {
             JSONObject res = httpJson("GET", "/groups.php", null, sessionId);
             if (res == null) return;
+            if (!res.optBoolean("linked", true)) {
+                ui.post(() -> { list.removeAllViews(); list.addView(emptyText(NOT_LINKED_MSG)); });
+                return;
+            }
             groupsCache = res;
             ui.post(() -> {
                 list.removeAllViews();
@@ -396,6 +402,10 @@ public class MainActivity extends Activity {
         io.execute(() -> {
             JSONObject res = httpJson("GET", "/friends.php", null, sessionId);
             if (res == null) return;
+            if (!res.optBoolean("linked", true)) {
+                ui.post(() -> { list.removeAllViews(); list.addView(emptyText(NOT_LINKED_MSG)); });
+                return;
+            }
             friendsCache = res;
             ui.post(() -> {
                 list.removeAllViews();
@@ -437,6 +447,9 @@ public class MainActivity extends Activity {
             JSONObject wrapped = httpJsonArrayAsObject("/modules.php");
             ui.post(() -> {
                 list.removeAllViews();
+                if (wrapped != null && wrapped.optBoolean("_linked_false", false)) {
+                    list.addView(emptyText(NOT_LINKED_MSG)); return;
+                }
                 JSONArray arr = wrapped == null ? null : wrapped.optJSONArray("_arr");
                 if (arr == null || arr.length() == 0) { list.addView(emptyText("Chưa có dữ liệu.")); return; }
                 for (int i = 0; i < arr.length(); i++) {
@@ -604,6 +617,9 @@ public class MainActivity extends Activity {
         io.execute(() -> {
             JSONObject wrapped = httpJsonArrayAsObject("/log.php");
             ui.post(() -> {
+                if (wrapped != null && wrapped.optBoolean("_linked_false", false)) {
+                    logView.setText(NOT_LINKED_MSG); return;
+                }
                 JSONArray arr = wrapped == null ? null : wrapped.optJSONArray("_arr");
                 if (arr == null || arr.length() == 0) { logView.setText("Chưa có log."); return; }
                 StringBuilder sb = new StringBuilder();
@@ -704,6 +720,15 @@ public class MainActivity extends Activity {
             JSONObject res = httpJson("GET", "/status.php", null, sessionId);
             if (res == null) return;
             ui.post(() -> {
+                if (!res.optBoolean("linked", true)) {
+                    statusDot.setTextColor(Color.parseColor("#666666"));
+                    statusText.setText(" 🔒 Chưa liên kết");
+                    if (uptimeVal != null) uptimeVal.setText("-");
+                    if (sysVal != null) sysVal.setText("-");
+                    if (groupsVal != null) groupsVal.setText("-");
+                    if (friendsVal != null) friendsVal.setText("-");
+                    return;
+                }
                 boolean online = res.optBoolean("online", false);
                 statusDot.setTextColor(online ? OK : BAD);
                 statusText.setText(online ? " Online" : " Offline");
@@ -730,6 +755,9 @@ public class MainActivity extends Activity {
             JSONObject wrapped = httpJsonArrayAsObject("/commands.php?pending=0");
             ui.post(() -> {
                 if (cmdLogView == null) return;
+                if (wrapped != null && wrapped.optBoolean("_linked_false", false)) {
+                    cmdLogView.setText(NOT_LINKED_MSG); return;
+                }
                 JSONArray arr = wrapped == null ? null : wrapped.optJSONArray("_arr");
                 if (arr == null || arr.length() == 0) { cmdLogView.setText("Chưa có gì."); return; }
                 StringBuilder sb = new StringBuilder();
@@ -752,6 +780,16 @@ public class MainActivity extends Activity {
         try {
             String raw = httpRaw("GET", path, null, sessionId);
             if (raw == null) return null;
+            String trimmed = raw.trim();
+            if (trimmed.startsWith("{")) {
+                // Server trả object thay vì mảng -> chỉ xảy ra khi chưa liên kết
+                // token ({"linked":false}) hoặc lỗi khác -> đánh dấu để UI hiện
+                // đúng thông báo, không coi như "chưa có dữ liệu" chung chung.
+                JSONObject obj = new JSONObject(trimmed);
+                JSONObject wrap = new JSONObject();
+                wrap.put("_linked_false", !obj.optBoolean("linked", true));
+                return wrap;
+            }
             JSONArray arr = new JSONArray(raw);
             JSONObject wrap = new JSONObject();
             wrap.put("_arr", arr);
