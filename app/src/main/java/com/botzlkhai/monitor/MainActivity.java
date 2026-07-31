@@ -537,27 +537,57 @@ public class MainActivity extends Activity {
     }
 
     // ---------- Settings (token) ----------
+    private Runnable tokPollRunnable = null;
+
     private void buildSettingsTab() {
         contentArea.addView(sectionTitle("TOKEN QUẢN LÝ BOT"));
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(24, 0, 24, 24);
-        TextView val = new TextView(this);
-        val.setTextColor(SUB);
-        val.setText("Đang tải...");
-        box.addView(val);
 
         TextView status = new TextView(this);
         status.setTextSize(12);
-        status.setPadding(0, 16, 0, 16);
+        status.setPadding(0, 0, 0, 16);
         box.addView(status);
 
+        // -- Khối hiện khi ĐÃ liên kết --
+        LinearLayout linkedBox = new LinearLayout(this);
+        linkedBox.setOrientation(LinearLayout.VERTICAL);
+        linkedBox.setVisibility(View.GONE);
+        TextView val = new TextView(this);
+        val.setTextColor(SUB);
+        val.setText("-");
+        linkedBox.addView(val);
+        LinearLayout btnRow = new LinearLayout(this);
+        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        Button changeBtn = actionButton("🔁 Đổi token", null);
+        Button unlinkBtn = actionButton("🗑️ Xoá liên kết", null);
+        unlinkBtn.setTextColor(BAD);
+        btnRow.addView(changeBtn);
+        btnRow.addView(unlinkBtn);
+        linkedBox.addView(btnRow);
+        box.addView(linkedBox);
+
+        // -- Khối hiện khi CHƯA liên kết --
+        LinearLayout unlinkedBox = new LinearLayout(this);
+        unlinkedBox.setOrientation(LinearLayout.VERTICAL);
         EditText tokenInput = new EditText(this);
         tokenInput.setHint("Dán token quản lý bot (gõ .token trong Zalo)");
         styleInput(tokenInput);
-        box.addView(tokenInput);
+        unlinkedBox.addView(tokenInput);
+        Button linkBtn = actionButton("🔗 Liên kết token", null);
+        unlinkedBox.addView(linkBtn);
+        TextView hint = new TextView(this);
+        hint.setTextColor(SUB);
+        hint.setTextSize(12);
+        hint.setPadding(0, 8, 0, 0);
+        hint.setText("Sau khi bấm Liên kết, mở Zalo — vào đúng đoạn \"Tin nhắn của tôi\" (self-chat) của CHÍNH tài khoản bot — trả lời \"dong y\" để duyệt. Tài khoản Zalo khác không xác nhận được.");
+        unlinkedBox.addView(hint);
+        box.addView(unlinkedBox);
 
-        Button linkBtn = actionButton("🔗 Liên kết token", () -> {
+        contentArea.addView(box);
+
+        linkBtn.setOnClickListener(v -> {
             String token = tokenInput.getText().toString().trim();
             if (token.isEmpty()) return;
             io.execute(() -> {
@@ -568,39 +598,76 @@ public class MainActivity extends Activity {
                     boolean ok = res != null && res.optBoolean("ok", false);
                     String msg = res != null ? res.optString("message", "") : "";
                     ui.post(() -> {
-                        android.widget.Toast.makeText(this,
-                                ok ? "✅ Liên kết thành công." : "❌ " + (msg.isEmpty() ? "Token không khớp." : msg),
-                                android.widget.Toast.LENGTH_LONG).show();
-                        if (ok) { tokenInput.setText(""); loadTokenStatus(val, status); }
+                        if (ok) tokenInput.setText("");
+                        else android.widget.Toast.makeText(this, "❌ " + (msg.isEmpty() ? "Token không khớp." : msg), android.widget.Toast.LENGTH_LONG).show();
+                        loadTokenStatus(val, status, linkedBox, unlinkedBox, tokenInput);
                     });
                 } catch (Exception ignored) {}
             });
         });
-        box.addView(linkBtn);
 
-        TextView hint = new TextView(this);
-        hint.setTextColor(SUB);
-        hint.setTextSize(12);
-        hint.setPadding(0, 8, 0, 0);
-        hint.setText("Cần liên kết đúng token này thì mới dùng được các lệnh nhạy cảm ở tab Điều khiển (Dừng bot / Khởi động lại bot).");
-        box.addView(hint);
+        unlinkBtn.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
+                .setMessage("Xoá liên kết token hiện tại?")
+                .setPositiveButton("Đồng ý", (d, w) -> doUnlinkToken(false, val, status, linkedBox, unlinkedBox, tokenInput))
+                .setNegativeButton("Huỷ", null).show());
 
-        contentArea.addView(box);
-        loadTokenStatus(val, status);
+        changeBtn.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
+                .setMessage("Đổi sang token khác sẽ HUỶ liên kết hiện tại. Tiếp tục?")
+                .setPositiveButton("Đồng ý", (d, w) -> doUnlinkToken(true, val, status, linkedBox, unlinkedBox, tokenInput))
+                .setNegativeButton("Huỷ", null).show());
+
+        loadTokenStatus(val, status, linkedBox, unlinkedBox, tokenInput);
     }
 
-    private void loadTokenStatus(TextView val, TextView status) {
+    private void doUnlinkToken(boolean silent, TextView val, TextView status, LinearLayout linkedBox, LinearLayout unlinkedBox, EditText tokenInput) {
+        io.execute(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("action", "unlink");
+                httpJson("POST", "/token_manage.php", body, sessionId);
+            } catch (Exception ignored) {}
+            ui.post(() -> {
+                if (!silent) android.widget.Toast.makeText(this, "Đã xoá liên kết.", android.widget.Toast.LENGTH_SHORT).show();
+                loadTokenStatus(val, status, linkedBox, unlinkedBox, tokenInput);
+            });
+        });
+    }
+
+    private void loadTokenStatus(TextView val, TextView status, LinearLayout linkedBox, LinearLayout unlinkedBox, EditText tokenInput) {
+        if (tokPollRunnable != null) { ui.removeCallbacks(tokPollRunnable); tokPollRunnable = null; }
         io.execute(() -> {
             JSONObject res = httpJson("GET", "/token_manage.php", null, sessionId);
             ui.post(() -> {
-                if (res != null && res.optJSONObject("active") != null) {
-                    val.setText(res.optJSONObject("active").optString("token", "-"));
-                } else {
-                    val.setText("Chưa có token nào.");
-                }
                 boolean linked = res != null && res.optBoolean("linked", false);
-                status.setText(linked ? "✅ Đã liên kết" : "⚠️ Chưa liên kết");
-                status.setTextColor(linked ? OK : BAD);
+                boolean pending = res != null && res.optBoolean("pending", false);
+                String pendingStatus = res != null ? res.optString("pending_status", "") : "";
+
+                linkedBox.setVisibility(linked ? View.VISIBLE : View.GONE);
+                unlinkedBox.setVisibility(linked ? View.GONE : View.VISIBLE);
+
+                if (linked) {
+                    val.setText(res.optString("token", "-"));
+                    status.setText("✅ Đã liên kết");
+                    status.setTextColor(OK);
+                    return;
+                }
+
+                tokenInput.setEnabled(!pending);
+                if (pending) {
+                    status.setText("⏳ Đang chờ chính bot xác nhận trong Zalo (self-chat, \"dong y\"/\"khong dong y\")...");
+                    status.setTextColor(BAD);
+                    tokPollRunnable = () -> loadTokenStatus(val, status, linkedBox, unlinkedBox, tokenInput);
+                    ui.postDelayed(tokPollRunnable, 3000);
+                } else if ("denied".equals(pendingStatus)) {
+                    status.setText("❌ Bot vừa từ chối yêu cầu liên kết trước đó.");
+                    status.setTextColor(BAD);
+                } else if ("expired".equals(pendingStatus)) {
+                    status.setText("⌛ Yêu cầu trước đã hết hạn (quá 5 phút không xác nhận).");
+                    status.setTextColor(BAD);
+                } else {
+                    status.setText("⚠️ Chưa liên kết");
+                    status.setTextColor(BAD);
+                }
             });
         });
     }
