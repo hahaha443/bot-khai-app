@@ -440,10 +440,36 @@ public class MainActivity extends Activity {
                 JSONArray arr = wrapped == null ? null : wrapped.optJSONArray("_arr");
                 if (arr == null || arr.length() == 0) { list.addView(emptyText("Chưa có dữ liệu.")); return; }
                 for (int i = 0; i < arr.length(); i++) {
-                    list.addView(buildItemRow(arr.optString(i), "", null, null));
+                    // Bot mới gửi object {file,name,cmd,icon}; bot cũ (chưa cập
+                    // nhật) có thể vẫn gửi chuỗi thô kiểu "modules.xxx" -> tự
+                    // dựng tên hiển thị tạm, bỏ tiền tố "modules." đi.
+                    JSONObject m = arr.optJSONObject(i);
+                    String title, meta, icon;
+                    if (m != null) {
+                        icon = m.optString("icon", "🧩");
+                        title = icon + "  " + m.optString("name", m.optString("file", "?"));
+                        meta = m.optString("cmd", "");
+                    } else {
+                        String raw = arr.optString(i, "");
+                        String file = raw.replaceFirst("^modules\\.", "");
+                        title = "🧩  " + prettifyFileName(file);
+                        meta = "";
+                    }
+                    list.addView(buildItemRow(title, meta, null, null));
                 }
             });
         });
+    }
+
+    private String prettifyFileName(String file) {
+        String s = file.replace("_", " ").replace("-", " ");
+        if (s.isEmpty()) return s;
+        StringBuilder sb = new StringBuilder();
+        for (String w : s.split(" ")) {
+            if (w.isEmpty()) continue;
+            sb.append(Character.toUpperCase(w.charAt(0))).append(w.substring(1)).append(" ");
+        }
+        return sb.toString().trim();
     }
 
     // ---------- Control ----------
@@ -454,10 +480,31 @@ public class MainActivity extends Activity {
         box.setPadding(24, 0, 24, 24);
         box.addView(actionButton("🔇 Bật/tắt chế độ im lặng", () -> sendGlobalCmd("toggle_quiet")));
         box.addView(actionButton("🔄 Reload lại modules", () -> sendGlobalCmd("reload_modules")));
+
+        Button stopBtn = actionButton("⏹️ Dừng bot từ xa", () -> confirmDanger(
+                "Bot sẽ NGỪNG HOẠT ĐỘNG hoàn toàn cho tới khi bật lại thủ công trên máy. Chắc chắn dừng bot?",
+                "stop_bot"));
+        stopBtn.setTextColor(BAD);
+        box.addView(stopBtn);
+
+        Button restartBtn = actionButton("♻️ Khởi động lại bot từ xa", () -> confirmDanger(
+                "Bot sẽ khởi động lại tiến trình (mất vài giây gián đoạn). Chắc chắn khởi động lại?",
+                "restart_bot"));
+        restartBtn.setTextColor(BAD);
+        box.addView(restartBtn);
+
         Button logoutBtn = actionButton("🚪 Đăng xuất", this::logout);
         logoutBtn.setTextColor(BAD);
         box.addView(logoutBtn);
         contentArea.addView(box);
+    }
+
+    private void confirmDanger(String message, String action) {
+        new android.app.AlertDialog.Builder(this)
+                .setMessage(message)
+                .setPositiveButton("Đồng ý", (d, w) -> sendGlobalCmd(action))
+                .setNegativeButton("Huỷ", null)
+                .show();
     }
 
     private void sendGlobalCmd(String action) {
@@ -465,7 +512,13 @@ public class MainActivity extends Activity {
             try {
                 JSONObject body = new JSONObject();
                 body.put("action", action);
-                httpJson("POST", "/commands.php", body, sessionId);
+                JSONObject res = httpJson("POST", "/commands.php", body, sessionId);
+                boolean ok = res != null && res.optBoolean("ok", false);
+                String msg = res != null ? res.optString("message", "") : "";
+                if (!ok) {
+                    String finalMsg = msg.isEmpty() ? "Gửi lệnh thất bại." : msg;
+                    ui.post(() -> android.widget.Toast.makeText(this, "❌ " + finalMsg, android.widget.Toast.LENGTH_LONG).show());
+                }
             } catch (Exception ignored) {}
         });
     }
@@ -480,7 +533,50 @@ public class MainActivity extends Activity {
         val.setTextColor(SUB);
         val.setText("Đang tải...");
         box.addView(val);
+
+        TextView status = new TextView(this);
+        status.setTextSize(12);
+        status.setPadding(0, 16, 0, 16);
+        box.addView(status);
+
+        EditText tokenInput = new EditText(this);
+        tokenInput.setHint("Dán token quản lý bot (gõ .token trong Zalo)");
+        styleInput(tokenInput);
+        box.addView(tokenInput);
+
+        Button linkBtn = actionButton("🔗 Liên kết token", () -> {
+            String token = tokenInput.getText().toString().trim();
+            if (token.isEmpty()) return;
+            io.execute(() -> {
+                try {
+                    JSONObject body = new JSONObject();
+                    body.put("token", token);
+                    JSONObject res = httpJson("POST", "/token_manage.php", body, sessionId);
+                    boolean ok = res != null && res.optBoolean("ok", false);
+                    String msg = res != null ? res.optString("message", "") : "";
+                    ui.post(() -> {
+                        android.widget.Toast.makeText(this,
+                                ok ? "✅ Liên kết thành công." : "❌ " + (msg.isEmpty() ? "Token không khớp." : msg),
+                                android.widget.Toast.LENGTH_LONG).show();
+                        if (ok) { tokenInput.setText(""); loadTokenStatus(val, status); }
+                    });
+                } catch (Exception ignored) {}
+            });
+        });
+        box.addView(linkBtn);
+
+        TextView hint = new TextView(this);
+        hint.setTextColor(SUB);
+        hint.setTextSize(12);
+        hint.setPadding(0, 8, 0, 0);
+        hint.setText("Cần liên kết đúng token này thì mới dùng được các lệnh nhạy cảm ở tab Điều khiển (Dừng bot / Khởi động lại bot).");
+        box.addView(hint);
+
         contentArea.addView(box);
+        loadTokenStatus(val, status);
+    }
+
+    private void loadTokenStatus(TextView val, TextView status) {
         io.execute(() -> {
             JSONObject res = httpJson("GET", "/token_manage.php", null, sessionId);
             ui.post(() -> {
@@ -489,6 +585,9 @@ public class MainActivity extends Activity {
                 } else {
                     val.setText("Chưa có token nào.");
                 }
+                boolean linked = res != null && res.optBoolean("linked", false);
+                status.setText(linked ? "✅ Đã liên kết" : "⚠️ Chưa liên kết");
+                status.setTextColor(linked ? OK : BAD);
             });
         });
     }
