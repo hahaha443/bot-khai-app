@@ -39,7 +39,7 @@ import java.util.concurrent.Executors;
 public class MainActivity extends Activity {
 
     // Đổi đúng domain/host thật của mày
-    private static final String API_BASE = "https://zrmteam.x10.mx/app-bot-zeplo/api";
+    private static final String API_BASE = "http://zrmteam.x10.mx/app-bot-zeplo/api";
 
     private static final int BG = Color.parseColor("#0b0e14");
     private static final int CARD = Color.parseColor("#151a24");
