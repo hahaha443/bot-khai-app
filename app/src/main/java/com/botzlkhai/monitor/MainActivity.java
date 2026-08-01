@@ -3,6 +3,7 @@ package com.botzlkhai.monitor;
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -33,6 +34,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -351,7 +354,7 @@ public class MainActivity extends Activity {
                     list.addView(buildItemRow(
                             g == null ? gid : g.optString("name", gid),
                             g == null ? "" : (g.optInt("member_count", 0) + " thành viên"),
-                            null, () -> openGroupDetail(gid)));
+                            g == null ? null : g.optString("avatar", null), () -> openGroupDetail(gid)));
                 }
                 if (!any) list.addView(emptyText("Chưa có nhóm nào."));
             });
@@ -703,7 +706,29 @@ public class MainActivity extends Activity {
     }
 
     // ================= Shared UI helpers =================
-    private LinearLayout buildItemRow(String title, String meta, Bitmap avatar, Runnable onClick) {
+    private static final Map<String, Bitmap> avatarCache = new ConcurrentHashMap<>();
+
+    private void loadAvatarAsync(ImageView av, String url) {
+        if (url == null || url.isEmpty() || !url.startsWith("http")) return;
+        Bitmap cached = avatarCache.get(url);
+        if (cached != null) { av.setImageBitmap(cached); return; }
+        io.execute(() -> {
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+                Bitmap bmp = BitmapFactory.decodeStream(conn.getInputStream());
+                if (bmp != null) {
+                    avatarCache.put(url, bmp);
+                    ui.post(() -> av.setImageBitmap(bmp));
+                }
+            } catch (Exception ignored) {
+                // tải avatar lỗi (mạng/link hỏng) -> giữ nguyên ô xám mặc định, không báo lỗi ồn ào
+            }
+        });
+    }
+
+    private LinearLayout buildItemRow(String title, String meta, String avatarUrl, Runnable onClick) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setBackgroundColor(CARD);
@@ -717,7 +742,7 @@ public class MainActivity extends Activity {
         ImageView av = new ImageView(this);
         av.setLayoutParams(new LinearLayout.LayoutParams(80, 80));
         av.setBackgroundColor(Color.parseColor("#2a3140"));
-        if (avatar != null) av.setImageBitmap(avatar);
+        loadAvatarAsync(av, avatarUrl);
         row.addView(av);
 
         LinearLayout textCol = new LinearLayout(this);
