@@ -6,7 +6,7 @@
     <application
         android:label="Bot-ZL-Khai Monitor"
         android:allowBackup="true"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="false">
 
         <activity
             android:name=".MainActivity"

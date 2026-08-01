@@ -39,7 +39,7 @@ import java.util.concurrent.Executors;
 public class MainActivity extends Activity {
 
     // Đổi đúng domain/host thật của mày
-    private static final String API_BASE = "http://zrmteam.x10.mx/app-bot-zeplo/api";
+    private static final String API_BASE = "https://zrmteam.x10.mx/app-bot-zeplo/api";
 
     private static final int BG = Color.parseColor("#0b0e14");
     private static final int CARD = Color.parseColor("#151a24");
@@ -581,7 +581,7 @@ public class MainActivity extends Activity {
         hint.setTextColor(SUB);
         hint.setTextSize(12);
         hint.setPadding(0, 8, 0, 0);
-        hint.setText("Sau khi bấm Liên kết, mở Zalo — vào đúng đoạn \"Tin nhắn của tôi\" (self-chat) của CHÍNH tài khoản bot — trả lời \"dong y\" để duyệt. Tài khoản Zalo khác không xác nhận được.");
+        hint.setText("Sau khi bấm Liên kết, mở Zalo — vào đúng đoạn \"Tin nhắn của tôi\" (self-chat) của CHÍNH tài khoản bot — gõ \".dongy\" để duyệt. Tài khoản Zalo khác không xác nhận được.");
         unlinkedBox.addView(hint);
         box.addView(unlinkedBox);
 
@@ -654,7 +654,7 @@ public class MainActivity extends Activity {
 
                 tokenInput.setEnabled(!pending);
                 if (pending) {
-                    status.setText("⏳ Đang chờ chính bot xác nhận trong Zalo (self-chat, \"dong y\"/\"khong dong y\")...");
+                    status.setText("⏳ Đang chờ chính bot xác nhận trong Zalo (self-chat, \".dongy\"/\".khongdongy\")...");
                     status.setTextColor(BAD);
                     tokPollRunnable = () -> loadTokenStatus(val, status, linkedBox, unlinkedBox, tokenInput);
                     ui.postDelayed(tokPollRunnable, 3000);
