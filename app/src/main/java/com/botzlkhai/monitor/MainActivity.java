@@ -44,15 +44,40 @@ public class MainActivity extends Activity {
     // Đổi đúng domain/host thật của mày
     private static final String API_BASE = "http://zrmteam.x10.mx/app-bot-zeplo/api";
 
-    private static final int BG = Color.parseColor("#0b0e14");
-    private static final int CARD = Color.parseColor("#151a24");
-    private static final int ACC = Color.parseColor("#4f8cff");
-    private static final int OK = Color.parseColor("#2ecc71");
-    private static final int BAD = Color.parseColor("#e74c3c");
+    // Màu KHÔNG còn static final — đổi được lúc chạy khi bật/tắt theme sáng/tối
+    // (xem applyThemeColors()). Đổi theme xong app tự recreate() để build lại
+    // toàn bộ UI với màu mới, khỏi phải dò từng View đã tạo để cập nhật tay.
+    private int BG, CARD, ACC, OK, BAD, TXT, SUB;
     private static final String NOT_LINKED_MSG =
             "🔒 Chưa liên kết token quản lý bot — vào tab Token, dán token rồi bấm Liên kết để xem được mục này.";
-    private static final int TXT = Color.parseColor("#e6e9ef");
-    private static final int SUB = Color.parseColor("#8b93a5");
+
+    private boolean darkMode = true;
+
+    private void applyThemeColors() {
+        if (darkMode) {
+            BG = Color.parseColor("#0b0e14");
+            CARD = Color.parseColor("#151a24");
+            ACC = Color.parseColor("#4f8cff");
+            OK = Color.parseColor("#2ecc71");
+            BAD = Color.parseColor("#e74c3c");
+            TXT = Color.parseColor("#e6e9ef");
+            SUB = Color.parseColor("#8b93a5");
+        } else {
+            BG = Color.parseColor("#f2f4f8");
+            CARD = Color.parseColor("#ffffff");
+            ACC = Color.parseColor("#2f6fe0");
+            OK = Color.parseColor("#1e9e5a");
+            BAD = Color.parseColor("#d6483a");
+            TXT = Color.parseColor("#1a1e27");
+            SUB = Color.parseColor("#68707e");
+        }
+    }
+
+    private void toggleTheme() {
+        darkMode = !darkMode;
+        prefs.edit().putBoolean("dark_mode", darkMode).apply();
+        recreate(); // build lại toàn bộ UI với màu mới — đơn giản, chắc ăn, không sót View nào
+    }
 
     private final ExecutorService io = Executors.newCachedThreadPool();
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -72,8 +97,11 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         prefs = getSharedPreferences("bot_khai_prefs", MODE_PRIVATE);
         sessionId = prefs.getString("session_id", null);
+        darkMode = prefs.getBoolean("dark_mode", true);
+        applyThemeColors();
 
         root = new FrameLayout(this);
+        root.setBackgroundColor(BG);
         setContentView(root);
 
         if (sessionId != null) showMain(); else showLogin();
@@ -191,6 +219,19 @@ public class MainActivity extends Activity {
         statusText.setText(" Đang kiểm tra...");
         statusText.setTextColor(TXT);
         header.addView(statusText);
+
+        Button themeBtn = new Button(this);
+        themeBtn.setText(darkMode ? "🌙" : "☀️");
+        themeBtn.setTextColor(TXT);
+        themeBtn.setBackgroundColor(CARD);
+        themeBtn.setPadding(16, 0, 16, 0);
+        LinearLayout.LayoutParams themeBtnLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        themeBtnLp.leftMargin = 16;
+        themeBtn.setLayoutParams(themeBtnLp);
+        themeBtn.setOnClickListener(v -> toggleTheme());
+        header.addView(themeBtn);
+
         mainView.addView(header);
 
         // Content area (scrollable)
@@ -421,7 +462,7 @@ public class MainActivity extends Activity {
                     list.addView(buildItemRow(
                             f == null ? uid : f.optString("name", uid),
                             f == null ? "member" : f.optString("permission", "member"),
-                            null, () -> openFriendDetail(uid)));
+                            f == null ? null : f.optString("avatar", null), () -> openFriendDetail(uid)));
                 }
                 if (!any) list.addView(emptyText("Chưa có dữ liệu bạn bè."));
             });
@@ -471,10 +512,19 @@ public class MainActivity extends Activity {
                         title = "🧩  " + prettifyFileName(file);
                         meta = "";
                     }
-                    list.addView(buildItemRow(title, meta, null, null));
+                    boolean clickable = m != null && !meta.isEmpty() && !meta.equals("tự động");
+                    String cmdToCopy = meta;
+                    Runnable onTap = clickable ? () -> copyCommandToClipboard(cmdToCopy) : null;
+                    list.addView(buildItemRow(title, meta, null, onTap));
                 }
             });
         });
+    }
+
+    private void copyCommandToClipboard(String cmd) {
+        android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        cm.setPrimaryClip(android.content.ClipData.newPlainText("lệnh bot", cmd));
+        android.widget.Toast.makeText(this, "✅ Đã copy: " + cmd, android.widget.Toast.LENGTH_SHORT).show();
     }
 
     private String prettifyFileName(String file) {
@@ -496,6 +546,8 @@ public class MainActivity extends Activity {
         box.setPadding(24, 0, 24, 24);
         box.addView(actionButton("🔇 Bật/tắt chế độ im lặng", () -> sendGlobalCmd("toggle_quiet")));
         box.addView(actionButton("🔄 Reload lại modules", () -> sendGlobalCmd("reload_modules")));
+        box.addView(actionButton("👥 Làm mới danh sách bạn bè", () -> sendGlobalCmd("refresh_friends")));
+        box.addView(actionButton("💬 Bật/tắt lệnh nhắn riêng (DM)", () -> sendGlobalCmd("toggle_dm")));
 
         Button stopBtn = actionButton("⏹️ Dừng bot từ xa", () -> confirmDanger(
                 "Bot sẽ NGỪNG HOẠT ĐỘNG hoàn toàn cho tới khi bật lại thủ công trên máy. Chắc chắn dừng bot?",
