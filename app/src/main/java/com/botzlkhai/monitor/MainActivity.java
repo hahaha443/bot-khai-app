@@ -581,7 +581,7 @@ public class MainActivity extends Activity {
         hint.setTextColor(SUB);
         hint.setTextSize(12);
         hint.setPadding(0, 8, 0, 0);
-        hint.setText("Sau khi bấm Liên kết, mở Zalo — vào đúng đoạn \"Tin nhắn của tôi\" (self-chat) của CHÍNH tài khoản bot — gõ \".dongy\" để duyệt. Tài khoản Zalo khác không xác nhận được.");
+        hint.setText("Sau khi bấm Liên kết, mở Zalo — vào đúng \"My Documents\" (Cloud của tôi) của CHÍNH tài khoản bot — gõ \".dongy\" để duyệt (không cần đợi bot nhắn gì trước, tự gõ luôn). Tài khoản Zalo khác không xác nhận được.");
         unlinkedBox.addView(hint);
         box.addView(unlinkedBox);
 
