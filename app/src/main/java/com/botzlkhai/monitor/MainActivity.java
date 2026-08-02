@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.GradientDrawable;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -73,6 +74,13 @@ public class MainActivity extends Activity {
         }
     }
 
+    private android.graphics.drawable.Drawable roundedBg(int color, float radiusDp) {
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(color);
+        d.setCornerRadius(radiusDp * getResources().getDisplayMetrics().density);
+        return d;
+    }
+
     private void toggleTheme() {
         darkMode = !darkMode;
         prefs.edit().putBoolean("dark_mode", darkMode).apply();
@@ -86,7 +94,7 @@ public class MainActivity extends Activity {
 
     private FrameLayout root;
     private LinearLayout loginView, mainView;
-    private TextView statusDot, statusText, uptimeVal, sysVal, groupsVal, friendsVal, cmdLogView;
+    private TextView statusDot, statusText, uptimeVal, sysVal, groupsVal, friendsVal, cmdLogView, botTitleView;
     private LinearLayout contentArea;
     private JSONObject groupsCache = new JSONObject(), friendsCache = new JSONObject();
     private String currentGroupId, currentFriendId;
@@ -103,6 +111,15 @@ public class MainActivity extends Activity {
         root = new FrameLayout(this);
         root.setBackgroundColor(BG);
         setContentView(root);
+        getWindow().setStatusBarColor(BG);
+        // Theme sáng -> nền status bar trắng, icon (đồng hồ/wifi/pin) mặc định
+        // màu trắng sẽ bị chìm mất -> báo hệ thống đổi icon sang màu đen.
+        int flags = getWindow().getDecorView().getSystemUiVisibility();
+        if (!darkMode) {
+            getWindow().getDecorView().setSystemUiVisibility(flags | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(flags & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        }
 
         if (sessionId != null) showMain(); else showLogin();
     }
@@ -209,6 +226,7 @@ public class MainActivity extends Activity {
         title.setText("🤖 Bot-ZL-Khai");
         title.setTextColor(TXT);
         title.setTextSize(18);
+        botTitleView = title;
         LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
         header.addView(title, titleLp);
         statusDot = new TextView(this);
@@ -223,8 +241,11 @@ public class MainActivity extends Activity {
         Button themeBtn = new Button(this);
         themeBtn.setText(darkMode ? "🌙" : "☀️");
         themeBtn.setTextColor(TXT);
-        themeBtn.setBackgroundColor(CARD);
-        themeBtn.setPadding(16, 0, 16, 0);
+        themeBtn.setBackground(roundedBg(CARD, 20));
+        themeBtn.setPadding(20, 8, 20, 8);
+        themeBtn.setMinWidth(0);
+        themeBtn.setMinHeight(0);
+        themeBtn.setElevation(0);
         LinearLayout.LayoutParams themeBtnLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         themeBtnLp.leftMargin = 16;
@@ -255,7 +276,7 @@ public class MainActivity extends Activity {
             b.setText(tabs[i]);
             b.setTextSize(11);
             b.setTextColor(SUB);
-            b.setBackgroundColor(CARD);
+            b.setBackground(roundedBg(CARD, 12));
             String key = keys[i];
             b.setOnClickListener(v -> switchTab(key));
             nav.addView(b, new LinearLayout.LayoutParams(220, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -308,7 +329,7 @@ public class MainActivity extends Activity {
     private LinearLayout card(String label) {
         LinearLayout c = new LinearLayout(this);
         c.setOrientation(LinearLayout.VERTICAL);
-        c.setBackgroundColor(CARD);
+        c.setBackground(roundedBg(CARD, 14));
         c.setPadding(28, 28, 28, 28);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
         lp.setMargins(8, 8, 8, 8);
@@ -783,7 +804,7 @@ public class MainActivity extends Activity {
     private LinearLayout buildItemRow(String title, String meta, String avatarUrl, Runnable onClick) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setBackgroundColor(CARD);
+        row.setBackground(roundedBg(CARD, 12));
         row.setPadding(24, 24, 24, 24);
         row.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
@@ -831,7 +852,7 @@ public class MainActivity extends Activity {
         Button b = new Button(this);
         b.setText(label);
         b.setTextColor(TXT);
-        b.setBackgroundColor(CARD);
+        b.setBackground(roundedBg(CARD, 12));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.bottomMargin = 12;
@@ -876,6 +897,8 @@ public class MainActivity extends Activity {
                 boolean online = res.optBoolean("online", false);
                 statusDot.setTextColor(online ? OK : BAD);
                 statusText.setText(online ? " Online" : " Offline");
+                String botName = res.optString("bot_name", "");
+                if (botTitleView != null && !botName.isEmpty()) botTitleView.setText("🤖 " + botName);
                 if (uptimeVal != null) {
                     int s = res.optInt("uptime_sec", 0);
                     uptimeVal.setText(online ? (s/3600) + "h " + ((s%3600)/60) + "m" : "-");
