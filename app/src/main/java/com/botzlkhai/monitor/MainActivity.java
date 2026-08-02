@@ -568,21 +568,72 @@ public class MainActivity extends Activity {
     }
 
     private void showCommandGuide(String title, String desc, String cmd) {
+        boolean hasCmd = cmd != null && !cmd.isEmpty() && !cmd.equals("tự động");
         StringBuilder body = new StringBuilder();
         if (desc != null && !desc.isEmpty()) body.append(desc).append("\n\n");
-        if (cmd != null && !cmd.isEmpty() && !cmd.equals("tự động")) {
-            body.append("Cách dùng: gõ ").append(cmd).append(" trong Zalo.");
-        } else if (cmd != null && cmd.equals("tự động")) {
-            body.append("Tính năng này chạy tự động, không cần gõ lệnh.");
+        body.append(hasCmd ? ("Cách dùng: gõ " + cmd + " trong Zalo.") : "Tính năng này chạy tự động, không cần gõ lệnh.");
+
+        android.app.Dialog dialog = new android.app.Dialog(this);
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackground(roundedBg(CARD, 16));
+        box.setPadding(48, 44, 48, 36);
+
+        TextView t = new TextView(this);
+        t.setText(title);
+        t.setTextColor(TXT);
+        t.setTextSize(16);
+        t.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams tLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tLp.bottomMargin = 20;
+        box.addView(t, tLp);
+
+        TextView d = new TextView(this);
+        d.setText(body.toString());
+        d.setTextColor(SUB);
+        d.setTextSize(13);
+        d.setLineSpacing(6, 1f);
+        LinearLayout.LayoutParams dLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        dLp.bottomMargin = 28;
+        box.addView(d, dLp);
+
+        LinearLayout btnRow = new LinearLayout(this);
+        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        if (hasCmd) {
+            Button copyBtn = new Button(this);
+            copyBtn.setText("📋 Copy lệnh");
+            copyBtn.setTextColor(Color.WHITE);
+            copyBtn.setBackground(roundedBg(ACC, 10));
+            LinearLayout.LayoutParams cLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+            cLp.rightMargin = 8;
+            copyBtn.setLayoutParams(cLp);
+            copyBtn.setOnClickListener(v -> { copyCommandToClipboard(cmd); dialog.dismiss(); });
+            btnRow.addView(copyBtn);
         }
-        android.app.AlertDialog.Builder b = new android.app.AlertDialog.Builder(this)
-                .setTitle(title)
-                .setMessage(body.toString())
-                .setPositiveButton("Đóng", null);
-        if (cmd != null && !cmd.isEmpty() && !cmd.equals("tự động")) {
-            b.setNeutralButton("📋 Copy lệnh", (d, w) -> copyCommandToClipboard(cmd));
+        Button closeBtn = new Button(this);
+        closeBtn.setText("Đóng");
+        closeBtn.setTextColor(TXT);
+        closeBtn.setBackground(roundedBg(BG, 10));
+        LinearLayout.LayoutParams clLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        closeBtn.setLayoutParams(clLp);
+        closeBtn.setOnClickListener(v -> dialog.dismiss());
+        btnRow.addView(closeBtn);
+        box.addView(btnRow);
+
+        dialog.setContentView(box);
+        android.view.Window w = dialog.getWindow();
+        if (w != null) {
+            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            android.view.WindowManager.LayoutParams lp = new android.view.WindowManager.LayoutParams();
+            lp.copyFrom(w.getAttributes());
+            lp.width = (int) (getResources().getDisplayMetrics().widthPixels * 0.86);
+            w.setAttributes(lp);
         }
-        b.show();
+        dialog.show();
     }
 
     private void copyCommandToClipboard(String cmd) {
@@ -632,11 +683,61 @@ public class MainActivity extends Activity {
     }
 
     private void confirmDanger(String message, String action) {
-        new android.app.AlertDialog.Builder(this)
-                .setMessage(message)
-                .setPositiveButton("Đồng ý", (d, w) -> sendGlobalCmd(action))
-                .setNegativeButton("Huỷ", null)
-                .show();
+        showConfirmDialog(message, () -> sendGlobalCmd(action));
+    }
+
+    /** Popup xác nhận tự vẽ đúng theme (thay AlertDialog mặc định của hệ thống — xấu, không ăn theo dark/light). */
+    private void showConfirmDialog(String message, Runnable onConfirm) {
+        android.app.Dialog dialog = new android.app.Dialog(this);
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackground(roundedBg(CARD, 16));
+        box.setPadding(48, 44, 48, 36);
+
+        TextView t = new TextView(this);
+        t.setText(message);
+        t.setTextColor(TXT);
+        t.setTextSize(14);
+        t.setLineSpacing(6, 1f);
+        LinearLayout.LayoutParams tLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tLp.bottomMargin = 28;
+        box.addView(t, tLp);
+
+        LinearLayout btnRow = new LinearLayout(this);
+        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        Button okBtn = new Button(this);
+        okBtn.setText("Đồng ý");
+        okBtn.setTextColor(Color.WHITE);
+        okBtn.setBackground(roundedBg(BAD, 10));
+        LinearLayout.LayoutParams okLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        okLp.rightMargin = 8;
+        okBtn.setLayoutParams(okLp);
+        okBtn.setOnClickListener(v -> { onConfirm.run(); dialog.dismiss(); });
+        btnRow.addView(okBtn);
+
+        Button cancelBtn = new Button(this);
+        cancelBtn.setText("Huỷ");
+        cancelBtn.setTextColor(TXT);
+        cancelBtn.setBackground(roundedBg(BG, 10));
+        LinearLayout.LayoutParams cLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        cancelBtn.setLayoutParams(cLp);
+        cancelBtn.setOnClickListener(v -> dialog.dismiss());
+        btnRow.addView(cancelBtn);
+        box.addView(btnRow);
+
+        dialog.setContentView(box);
+        android.view.Window w = dialog.getWindow();
+        if (w != null) {
+            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            android.view.WindowManager.LayoutParams lp = new android.view.WindowManager.LayoutParams();
+            lp.copyFrom(w.getAttributes());
+            lp.width = (int) (getResources().getDisplayMetrics().widthPixels * 0.86);
+            w.setAttributes(lp);
+        }
+        dialog.show();
     }
 
     private void sendGlobalCmd(String action) {
@@ -725,15 +826,11 @@ public class MainActivity extends Activity {
             });
         });
 
-        unlinkBtn.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
-                .setMessage("Xoá liên kết token hiện tại?")
-                .setPositiveButton("Đồng ý", (d, w) -> doUnlinkToken(false, val, status, linkedBox, unlinkedBox, tokenInput))
-                .setNegativeButton("Huỷ", null).show());
+        unlinkBtn.setOnClickListener(v -> showConfirmDialog("Xoá liên kết token hiện tại?",
+                () -> doUnlinkToken(false, val, status, linkedBox, unlinkedBox, tokenInput)));
 
-        changeBtn.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
-                .setMessage("Đổi sang token khác sẽ HUỶ liên kết hiện tại. Tiếp tục?")
-                .setPositiveButton("Đồng ý", (d, w) -> doUnlinkToken(true, val, status, linkedBox, unlinkedBox, tokenInput))
-                .setNegativeButton("Huỷ", null).show());
+        changeBtn.setOnClickListener(v -> showConfirmDialog("Đổi sang token khác sẽ HUỶ liên kết hiện tại. Tiếp tục?",
+                () -> doUnlinkToken(true, val, status, linkedBox, unlinkedBox, tokenInput)));
 
         loadTokenStatus(val, status, linkedBox, unlinkedBox, tokenInput);
     }
