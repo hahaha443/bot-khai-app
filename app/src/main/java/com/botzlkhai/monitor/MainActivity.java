@@ -397,9 +397,14 @@ public class MainActivity extends Activity {
     }
 
     private void loadGroups(LinearLayout list) {
+        list.removeAllViews();
+        list.addView(emptyText("Đang tải..."));
         io.execute(() -> {
             JSONObject res = httpJson("GET", "/groups.php", null, sessionId);
-            if (res == null) return;
+            if (res == null) {
+                ui.post(() -> { list.removeAllViews(); list.addView(retryText("Lỗi mạng, không tải được.", () -> loadGroups(list))); });
+                return;
+            }
             if (!res.optBoolean("linked", true)) {
                 ui.post(() -> { list.removeAllViews(); list.addView(emptyText(NOT_LINKED_MSG)); });
                 return;
@@ -464,9 +469,18 @@ public class MainActivity extends Activity {
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding(24, 0, 24, 24);
         contentArea.addView(list);
+        loadFriends(list);
+    }
+
+    private void loadFriends(LinearLayout list) {
+        list.removeAllViews();
+        list.addView(emptyText("Đang tải..."));
         io.execute(() -> {
             JSONObject res = httpJson("GET", "/friends.php", null, sessionId);
-            if (res == null) return;
+            if (res == null) {
+                ui.post(() -> { list.removeAllViews(); list.addView(retryText("Lỗi mạng, không tải được.", () -> loadFriends(list))); });
+                return;
+            }
             if (!res.optBoolean("linked", true)) {
                 ui.post(() -> { list.removeAllViews(); list.addView(emptyText(NOT_LINKED_MSG)); });
                 return;
@@ -482,12 +496,18 @@ public class MainActivity extends Activity {
                     JSONObject f = res.optJSONObject(uid);
                     list.addView(buildItemRow(
                             f == null ? uid : f.optString("name", uid),
-                            f == null ? "member" : f.optString("permission", "member"),
+                            permLabel(f == null ? "member" : f.optString("permission", "member")),
                             f == null ? null : f.optString("avatar", null), () -> openFriendDetail(uid)));
                 }
                 if (!any) list.addView(emptyText("Chưa có dữ liệu bạn bè."));
             });
         });
+    }
+
+    private String permLabel(String p) {
+        if ("owner".equals(p)) return "👑 Admin chính";
+        if ("admin".equals(p)) return "🔑 Admin";
+        return "Thành viên";
     }
 
     private void openFriendDetail(String uid) {
@@ -498,7 +518,7 @@ public class MainActivity extends Activity {
         contentArea.addView(backButton("← Quay lại danh sách bạn bè", () -> switchTab("friends")));
         contentArea.addView(detailRow("ID", uid));
         contentArea.addView(detailRow("Tên", f.optString("name", uid)));
-        contentArea.addView(detailRow("Quyền", f.optString("permission", "member")));
+        contentArea.addView(detailRow("Quyền", permLabel(f.optString("permission", "member"))));
     }
 
     // ---------- Commands (module list) ----------
@@ -508,11 +528,13 @@ public class MainActivity extends Activity {
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding(24, 0, 24, 24);
         contentArea.addView(list);
+        list.addView(emptyText("Đang tải..."));
         io.execute(() -> {
             JSONObject wrapped = httpJsonArrayAsObject("/modules.php");
             ui.post(() -> {
                 list.removeAllViews();
-                if (wrapped != null && wrapped.optBoolean("_linked_false", false)) {
+                if (wrapped == null) { list.addView(retryText("Lỗi mạng, không tải được.", () -> switchTab("commands"))); return; }
+                if (wrapped.optBoolean("_linked_false", false)) {
                     list.addView(emptyText(NOT_LINKED_MSG)); return;
                 }
                 JSONArray arr = wrapped == null ? null : wrapped.optJSONArray("_arr");
@@ -522,24 +544,45 @@ public class MainActivity extends Activity {
                     // nhật) có thể vẫn gửi chuỗi thô kiểu "modules.xxx" -> tự
                     // dựng tên hiển thị tạm, bỏ tiền tố "modules." đi.
                     JSONObject m = arr.optJSONObject(i);
-                    String title, meta, icon;
+                    String title, meta, icon, desc;
                     if (m != null) {
                         icon = m.optString("icon", "🧩");
                         title = icon + "  " + m.optString("name", m.optString("file", "?"));
                         meta = m.optString("cmd", "");
+                        desc = m.optString("desc", "");
                     } else {
                         String raw = arr.optString(i, "");
                         String file = raw.replaceFirst("^modules\\.", "");
                         title = "🧩  " + prettifyFileName(file);
                         meta = "";
+                        desc = "";
                     }
-                    boolean clickable = m != null && !meta.isEmpty() && !meta.equals("tự động");
-                    String cmdToCopy = meta;
-                    Runnable onTap = clickable ? () -> copyCommandToClipboard(cmdToCopy) : null;
-                    list.addView(buildItemRow(title, meta, null, onTap));
+                    String cmdForDialog = meta;
+                    String descForDialog = desc;
+                    String titleForDialog = title;
+                    Runnable onTap = () -> showCommandGuide(titleForDialog, descForDialog, cmdForDialog);
+                    list.addView(buildItemRow(title, meta, null, onTap, false));
                 }
             });
         });
+    }
+
+    private void showCommandGuide(String title, String desc, String cmd) {
+        StringBuilder body = new StringBuilder();
+        if (desc != null && !desc.isEmpty()) body.append(desc).append("\n\n");
+        if (cmd != null && !cmd.isEmpty() && !cmd.equals("tự động")) {
+            body.append("Cách dùng: gõ ").append(cmd).append(" trong Zalo.");
+        } else if (cmd != null && cmd.equals("tự động")) {
+            body.append("Tính năng này chạy tự động, không cần gõ lệnh.");
+        }
+        android.app.AlertDialog.Builder b = new android.app.AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(body.toString())
+                .setPositiveButton("Đóng", null);
+        if (cmd != null && !cmd.isEmpty() && !cmd.equals("tự động")) {
+            b.setNeutralButton("📋 Copy lệnh", (d, w) -> copyCommandToClipboard(cmd));
+        }
+        b.show();
     }
 
     private void copyCommandToClipboard(String cmd) {
@@ -802,6 +845,10 @@ public class MainActivity extends Activity {
     }
 
     private LinearLayout buildItemRow(String title, String meta, String avatarUrl, Runnable onClick) {
+        return buildItemRow(title, meta, avatarUrl, onClick, true);
+    }
+
+    private LinearLayout buildItemRow(String title, String meta, String avatarUrl, Runnable onClick, boolean showAvatar) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setBackground(roundedBg(CARD, 12));
@@ -812,15 +859,17 @@ public class MainActivity extends Activity {
         rowLp.bottomMargin = 12;
         row.setLayoutParams(rowLp);
 
-        ImageView av = new ImageView(this);
-        av.setLayoutParams(new LinearLayout.LayoutParams(80, 80));
-        av.setBackgroundColor(Color.parseColor("#2a3140"));
-        loadAvatarAsync(av, avatarUrl);
-        row.addView(av);
+        if (showAvatar) {
+            ImageView av = new ImageView(this);
+            av.setLayoutParams(new LinearLayout.LayoutParams(80, 80));
+            av.setBackground(roundedBg(Color.parseColor("#2a3140"), 40));
+            loadAvatarAsync(av, avatarUrl);
+            row.addView(av);
+        }
 
         LinearLayout textCol = new LinearLayout(this);
         textCol.setOrientation(LinearLayout.VERTICAL);
-        textCol.setPadding(20, 0, 0, 0);
+        textCol.setPadding(showAvatar ? 20 : 0, 0, 0, 0);
         TextView t = new TextView(this);
         t.setText(title); t.setTextColor(TXT); t.setTextSize(14);
         TextView m = new TextView(this);
@@ -836,6 +885,16 @@ public class MainActivity extends Activity {
         TextView t = new TextView(this);
         t.setText(s); t.setTextColor(SUB); t.setGravity(Gravity.CENTER);
         t.setPadding(0, 40, 0, 40);
+        return t;
+    }
+
+    private TextView retryText(String msg, Runnable onRetry) {
+        TextView t = new TextView(this);
+        t.setText("⚠️ " + msg + "\n\nChạm để thử lại");
+        t.setTextColor(BAD);
+        t.setGravity(Gravity.CENTER);
+        t.setPadding(0, 40, 0, 40);
+        t.setOnClickListener(v -> onRetry.run());
         return t;
     }
 
