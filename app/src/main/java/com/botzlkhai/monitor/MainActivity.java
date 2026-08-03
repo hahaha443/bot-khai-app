@@ -494,10 +494,12 @@ public class MainActivity extends Activity {
                     any = true;
                     String uid = keys.next();
                     JSONObject f = res.optJSONObject(uid);
+                    String perm = f == null ? "member" : f.optString("permission", "member");
                     list.addView(buildItemRow(
                             f == null ? uid : f.optString("name", uid),
-                            permLabel(f == null ? "member" : f.optString("permission", "member")),
-                            f == null ? null : f.optString("avatar", null), () -> openFriendDetail(uid)));
+                            permLabel(perm),
+                            f == null ? null : f.optString("avatar", null), () -> openFriendDetail(uid),
+                            true, permColor(perm)));
                 }
                 if (!any) list.addView(emptyText("Chưa có dữ liệu bạn bè."));
             });
@@ -507,18 +509,26 @@ public class MainActivity extends Activity {
     private String permLabel(String p) {
         if ("owner".equals(p)) return "👑 Admin chính";
         if ("admin".equals(p)) return "🔑 Admin";
-        return "Thành viên";
+        return "🙋 Thành viên";
+    }
+
+    // Ba dạng quyền -> 3 màu khác nhau, đồng bộ với badge màu bên bản web.
+    private int permColor(String p) {
+        if ("owner".equals(p)) return Color.parseColor("#e0a800"); // vàng gold - admin chính
+        if ("admin".equals(p)) return ACC;                          // xanh - admin thường
+        return SUB;                                                 // xám - thành viên
     }
 
     private void openFriendDetail(String uid) {
         currentFriendId = uid;
         JSONObject f = friendsCache.optJSONObject(uid);
         if (f == null) f = new JSONObject();
+        String perm = f.optString("permission", "member");
         contentArea.removeAllViews();
         contentArea.addView(backButton("← Quay lại danh sách bạn bè", () -> switchTab("friends")));
-        contentArea.addView(detailRow("ID", uid));
+        contentArea.addView(detailRowWithCopy("ID", uid));
         contentArea.addView(detailRow("Tên", f.optString("name", uid)));
-        contentArea.addView(detailRow("Quyền", permLabel(f.optString("permission", "member"))));
+        contentArea.addView(detailRow("Quyền", permLabel(perm), permColor(perm)));
     }
 
     // ---------- Commands (module list) ----------
@@ -942,10 +952,14 @@ public class MainActivity extends Activity {
     }
 
     private LinearLayout buildItemRow(String title, String meta, String avatarUrl, Runnable onClick) {
-        return buildItemRow(title, meta, avatarUrl, onClick, true);
+        return buildItemRow(title, meta, avatarUrl, onClick, true, null);
     }
 
     private LinearLayout buildItemRow(String title, String meta, String avatarUrl, Runnable onClick, boolean showAvatar) {
+        return buildItemRow(title, meta, avatarUrl, onClick, showAvatar, null);
+    }
+
+    private LinearLayout buildItemRow(String title, String meta, String avatarUrl, Runnable onClick, boolean showAvatar, Integer metaColor) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setBackground(roundedBg(CARD, 12));
@@ -970,7 +984,7 @@ public class MainActivity extends Activity {
         TextView t = new TextView(this);
         t.setText(title); t.setTextColor(TXT); t.setTextSize(14);
         TextView m = new TextView(this);
-        m.setText(meta); m.setTextColor(SUB); m.setTextSize(12);
+        m.setText(meta); m.setTextColor(metaColor != null ? metaColor : SUB); m.setTextSize(12);
         textCol.addView(t); textCol.addView(m);
         row.addView(textCol);
 
@@ -1018,6 +1032,10 @@ public class MainActivity extends Activity {
     }
 
     private LinearLayout detailRow(String k, String v) {
+        return detailRow(k, v, null);
+    }
+
+    private LinearLayout detailRow(String k, String v, Integer valueColor) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(24, 16, 24, 16);
@@ -1025,8 +1043,43 @@ public class MainActivity extends Activity {
         kt.setText(k); kt.setTextColor(SUB); kt.setTextSize(13);
         kt.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         TextView vt = new TextView(this);
+        vt.setText(v); vt.setTextColor(valueColor != null ? valueColor : TXT); vt.setTextSize(13);
+        row.addView(kt); row.addView(vt);
+        return row;
+    }
+
+    /** Giống detailRow nhưng có thêm nút "Sao chép" cạnh giá trị — dùng cho ID. */
+    private LinearLayout detailRowWithCopy(String k, String v) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(24, 16, 24, 16);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        TextView kt = new TextView(this);
+        kt.setText(k); kt.setTextColor(SUB); kt.setTextSize(13);
+        kt.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        TextView vt = new TextView(this);
         vt.setText(v); vt.setTextColor(TXT); vt.setTextSize(13);
         row.addView(kt); row.addView(vt);
+
+        Button copyBtn = new Button(this);
+        copyBtn.setText("📋 Sao chép");
+        copyBtn.setTextColor(ACC);
+        copyBtn.setBackground(roundedBg(BG, 8));
+        copyBtn.setTextSize(11);
+        copyBtn.setMinWidth(0);
+        copyBtn.setMinHeight(0);
+        copyBtn.setPadding(20, 6, 20, 6);
+        LinearLayout.LayoutParams cbLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cbLp.leftMargin = 12;
+        copyBtn.setLayoutParams(cbLp);
+        copyBtn.setOnClickListener(view -> {
+            android.content.ClipboardManager cm =
+                    (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("ID", v));
+            android.widget.Toast.makeText(this, "✅ Đã copy ID", android.widget.Toast.LENGTH_SHORT).show();
+        });
+        row.addView(copyBtn);
         return row;
     }
 
