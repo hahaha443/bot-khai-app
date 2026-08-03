@@ -44,6 +44,10 @@ public class MainActivity extends Activity {
 
     // Đổi đúng domain/host thật của mày
     private static final String API_BASE = "http://zrmteam.x10.mx/app-bot-zeplo/api";
+    // Giống bản web: khi không có avatar thật, dùng ảnh đại diện tự sinh
+    // (identicon) theo uid thay vì để trống xám — nhóm/bạn bè không có avatar
+    // trên Zalo là chuyện bình thường, không phải lỗi, chỉ cần hiện gì đó thay thế.
+    private static final String AVATAR_FALLBACK = "https://api.dicebear.com/7.x/identicon/png?seed=";
 
     // Màu KHÔNG còn static final — đổi được lúc chạy khi bật/tắt theme sáng/tối
     // (xem applyThemeColors()). Đổi theme xong app tự recreate() để build lại
@@ -95,6 +99,7 @@ public class MainActivity extends Activity {
     private FrameLayout root;
     private LinearLayout loginView, mainView;
     private TextView statusDot, statusText, uptimeVal, sysVal, groupsVal, friendsVal, cmdLogView, botTitleView;
+    private TextView dailyReportView, adminActionsView, groupEventsView;
     private LinearLayout contentArea;
     private JSONObject groupsCache = new JSONObject(), friendsCache = new JSONObject();
     private String currentGroupId, currentFriendId;
@@ -373,8 +378,23 @@ public class MainActivity extends Activity {
         cmdLogView.setText("Chưa có gì.");
         contentArea.addView(cmdLogView);
 
+        contentArea.addView(sectionTitle("BÁO CÁO HOẠT ĐỘNG (7 NGÀY GẦN NHẤT)"));
+        dailyReportView = new TextView(this);
+        dailyReportView.setTextColor(SUB);
+        dailyReportView.setPadding(32, 0, 32, 32);
+        dailyReportView.setText("Đang tải...");
+        contentArea.addView(dailyReportView);
+
+        contentArea.addView(sectionTitle("LỊCH SỬ DUYỆT / KICK THÀNH VIÊN"));
+        adminActionsView = new TextView(this);
+        adminActionsView.setTextColor(SUB);
+        adminActionsView.setPadding(32, 0, 32, 32);
+        adminActionsView.setText("Đang tải...");
+        contentArea.addView(adminActionsView);
+
         refreshStatus();
         refreshCmdLog();
+        refreshActivity();
     }
 
     private TextView valText(String v) {
@@ -418,10 +438,12 @@ public class MainActivity extends Activity {
                     any = true;
                     String gid = keys.next();
                     JSONObject g = res.optJSONObject(gid);
+                    String avatar = g == null ? null : g.optString("avatar", null);
+                    if (avatar == null || avatar.isEmpty()) avatar = AVATAR_FALLBACK + gid;
                     list.addView(buildItemRow(
                             g == null ? gid : g.optString("name", gid),
                             g == null ? "" : (g.optInt("member_count", 0) + " thành viên"),
-                            g == null ? null : g.optString("avatar", null), () -> openGroupDetail(gid)));
+                            avatar, () -> openGroupDetail(gid)));
                 }
                 if (!any) list.addView(emptyText("Chưa có nhóm nào."));
             });
@@ -449,6 +471,47 @@ public class MainActivity extends Activity {
         Button toggleWelcome = actionButton("Bật/tắt Welcome", () -> sendGroupCmd("toggle_welcome"));
         contentArea.addView(toggleAntilink);
         contentArea.addView(toggleWelcome);
+
+        contentArea.addView(sectionTitle("THÀNH VIÊN MỚI VÀO / RỜI NHÓM"));
+        groupEventsView = new TextView(this);
+        groupEventsView.setTextColor(SUB);
+        groupEventsView.setPadding(0, 16, 0, 32);
+        groupEventsView.setText("Đang tải...");
+        contentArea.addView(groupEventsView);
+        refreshGroupEvents(gid);
+    }
+
+    private void refreshGroupEvents(String gid) {
+        io.execute(() -> {
+            JSONObject d = httpJson("GET", "/activity.php", null, sessionId);
+            ui.post(() -> {
+                if (groupEventsView == null) return;
+                if (d == null) { groupEventsView.setText("Lỗi tải dữ liệu."); return; }
+                if (!d.optBoolean("linked", true)) { groupEventsView.setText(NOT_LINKED_MSG); return; }
+                JSONObject groupEvents = d.optJSONObject("group_events");
+                JSONArray events = groupEvents == null ? null : groupEvents.optJSONArray(gid);
+                if (events == null || events.length() == 0) {
+                    groupEventsView.setText("Chưa có ai vào/rời gần đây.");
+                    return;
+                }
+                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm dd/MM", Locale.getDefault());
+                StringBuilder sb = new StringBuilder();
+                int from = Math.max(0, events.length() - 30);
+                for (int i = events.length() - 1; i >= from; i--) {
+                    JSONObject ev = events.optJSONObject(i);
+                    if (ev == null) continue;
+                    boolean isJoin = "join".equals(ev.optString("type"));
+                    String icon = isJoin ? "🟢" : "🔴";
+                    String verb = isJoin ? "đã vào nhóm" : "đã rời nhóm";
+                    String who = ev.optString("name", "");
+                    if (who.isEmpty()) who = ev.optString("uid", "Ẩn danh");
+                    long t = ev.optLong("time", 0);
+                    sb.append(icon).append(" ").append(who).append(" ").append(verb)
+                      .append("  ·  ").append(t > 0 ? sdf.format(new Date(t * 1000L)) : "-").append("\n");
+                }
+                groupEventsView.setText(sb.toString().trim());
+            });
+        });
     }
 
     private void sendGroupCmd(String action) {
@@ -495,10 +558,12 @@ public class MainActivity extends Activity {
                     String uid = keys.next();
                     JSONObject f = res.optJSONObject(uid);
                     String perm = f == null ? "member" : f.optString("permission", "member");
+                    String avatar = f == null ? null : f.optString("avatar", null);
+                    if (avatar == null || avatar.isEmpty()) avatar = AVATAR_FALLBACK + uid;
                     list.addView(buildItemRow(
                             f == null ? uid : f.optString("name", uid),
                             permLabel(perm),
-                            f == null ? null : f.optString("avatar", null), () -> openFriendDetail(uid),
+                            avatar, () -> openFriendDetail(uid),
                             true, permColor(perm)));
                 }
                 if (!any) list.addView(emptyText("Chưa có dữ liệu bạn bè."));
@@ -509,7 +574,7 @@ public class MainActivity extends Activity {
     private String permLabel(String p) {
         if ("owner".equals(p)) return "👑 Admin chính";
         if ("admin".equals(p)) return "🔑 Admin";
-        return "🙋 Thành viên";
+        return "Thành viên";
     }
 
     // Ba dạng quyền -> 3 màu khác nhau, đồng bộ với badge màu bên bản web.
@@ -791,10 +856,7 @@ public class MainActivity extends Activity {
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
         Button changeBtn = actionButton("🔁 Đổi token", null);
-        Button unlinkBtn = actionButton("🗑️ Xoá liên kết", null);
-        unlinkBtn.setTextColor(BAD);
         btnRow.addView(changeBtn);
-        btnRow.addView(unlinkBtn);
         linkedBox.addView(btnRow);
         box.addView(linkedBox);
 
@@ -835,9 +897,6 @@ public class MainActivity extends Activity {
                 } catch (Exception ignored) {}
             });
         });
-
-        unlinkBtn.setOnClickListener(v -> showConfirmDialog("Xoá liên kết token hiện tại?",
-                () -> doUnlinkToken(false, val, status, linkedBox, unlinkedBox, tokenInput)));
 
         changeBtn.setOnClickListener(v -> showConfirmDialog("Đổi sang token khác sẽ HUỶ liên kết hiện tại. Tiếp tục?",
                 () -> doUnlinkToken(true, val, status, linkedBox, unlinkedBox, tokenInput)));
@@ -1122,6 +1181,70 @@ public class MainActivity extends Activity {
                 }
                 if (groupsVal != null) groupsVal.setText(String.valueOf(res.optInt("groups", 0)));
                 if (friendsVal != null) friendsVal.setText(String.valueOf(res.optInt("friends", 0)));
+            });
+        });
+    }
+
+    private void refreshActivity() {
+        io.execute(() -> {
+            JSONObject d = httpJson("GET", "/activity.php", null, sessionId);
+            ui.post(() -> {
+                if (dailyReportView == null || adminActionsView == null) return;
+                if (d == null) { dailyReportView.setText("Lỗi tải dữ liệu."); adminActionsView.setText("Lỗi tải dữ liệu."); return; }
+                if (!d.optBoolean("linked", true)) {
+                    dailyReportView.setText(NOT_LINKED_MSG);
+                    adminActionsView.setText(NOT_LINKED_MSG);
+                    return;
+                }
+                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm dd/MM", Locale.getDefault());
+
+                // ── Báo cáo theo ngày: 7 ngày gần nhất, mới nhất trước ──
+                JSONObject daily = d.optJSONObject("daily");
+                java.util.List<String> days = new java.util.ArrayList<>();
+                if (daily != null) {
+                    Iterator<String> it = daily.keys();
+                    while (it.hasNext()) days.add(it.next());
+                }
+                java.util.Collections.sort(days);
+                if (days.size() > 7) days = days.subList(days.size() - 7, days.size());
+                java.util.Collections.reverse(days);
+                if (days.isEmpty()) {
+                    dailyReportView.setText("Chưa có dữ liệu.");
+                } else {
+                    StringBuilder sb = new StringBuilder();
+                    for (String day : days) {
+                        JSONObject v = daily.optJSONObject(day);
+                        int msgs = v == null ? 0 : v.optInt("messages", 0);
+                        int newMems = v == null ? 0 : v.optInt("new_members", 0);
+                        sb.append(day).append("  ·  💬 ").append(msgs).append(" tin nhắn  ·  🆕 ")
+                          .append(newMems).append(" thành viên mới\n");
+                    }
+                    dailyReportView.setText(sb.toString().trim());
+                }
+
+                // ── Lịch sử duyệt/kick: 30 gần nhất, mới nhất trước ──
+                JSONArray actions = d.optJSONArray("admin_actions");
+                if (actions == null || actions.length() == 0) {
+                    adminActionsView.setText("Chưa có gì.");
+                } else {
+                    StringBuilder sb = new StringBuilder();
+                    int from = Math.max(0, actions.length() - 30);
+                    for (int i = actions.length() - 1; i >= from; i--) {
+                        JSONObject a = actions.optJSONObject(i);
+                        if (a == null) continue;
+                        boolean isApprove = "approve".equals(a.optString("type"));
+                        String icon = isApprove ? "✅" : "👢";
+                        String verb = isApprove ? "được duyệt vào" : "bị kick khỏi";
+                        String who = a.optString("name", "");
+                        if (who.isEmpty()) who = a.optString("uid", "Ẩn danh");
+                        String grp = a.optString("group_name", "");
+                        if (grp.isEmpty()) grp = a.optString("group_id", "");
+                        long t = a.optLong("time", 0);
+                        sb.append(icon).append(" ").append(who).append(" ").append(verb).append(" ").append(grp)
+                          .append("  ·  ").append(t > 0 ? sdf.format(new Date(t * 1000L)) : "-").append("\n");
+                    }
+                    adminActionsView.setText(sb.toString().trim());
+                }
             });
         });
     }
