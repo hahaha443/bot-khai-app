@@ -99,6 +99,7 @@ public class MainActivity extends Activity {
     private FrameLayout root;
     private LinearLayout loginView, mainView;
     private TextView statusDot, statusText, uptimeVal, sysVal, groupsVal, friendsVal, cmdLogView, botTitleView;
+    private TextView modulesVal, startedAtVal;
     private LinearLayout contentArea;
     private JSONObject groupsCache = new JSONObject(), friendsCache = new JSONObject();
     private String currentGroupId, currentFriendId;
@@ -369,6 +370,18 @@ public class MainActivity extends Activity {
         c4.setOnClickListener(v -> switchTab("friends"));
         row2.addView(c3); row2.addView(c4);
         contentArea.addView(row2);
+
+        LinearLayout row3 = new LinearLayout(this);
+        row3.setOrientation(LinearLayout.HORIZONTAL);
+        row3.setPadding(24, 0, 24, 0);
+        LinearLayout c5 = card("Modules");
+        modulesVal = valText("-"); c5.addView(modulesVal);
+        c5.setOnClickListener(v -> switchTab("commands"));
+        LinearLayout c6 = card("Khởi động lúc");
+        startedAtVal = valText("-"); startedAtVal.setTextSize(15);
+        c6.addView(startedAtVal);
+        row3.addView(c5); row3.addView(c6);
+        contentArea.addView(row3);
 
         contentArea.addView(sectionTitle("LỆNH GẦN ĐÂY"));
         cmdLogView = new TextView(this);
@@ -1103,6 +1116,8 @@ public class MainActivity extends Activity {
                     if (sysVal != null) sysVal.setText("-");
                     if (groupsVal != null) groupsVal.setText("-");
                     if (friendsVal != null) friendsVal.setText("-");
+                    if (modulesVal != null) modulesVal.setText("-");
+                    if (startedAtVal != null) startedAtVal.setText("-");
                     return;
                 }
                 boolean online = res.optBoolean("online", false);
@@ -1124,6 +1139,8 @@ public class MainActivity extends Activity {
                 }
                 if (groupsVal != null) groupsVal.setText(String.valueOf(res.optInt("groups", 0)));
                 if (friendsVal != null) friendsVal.setText(String.valueOf(res.optInt("friends", 0)));
+                if (modulesVal != null) modulesVal.setText(String.valueOf(res.optInt("modules_count", 0)));
+                if (startedAtVal != null) startedAtVal.setText(fmtTime(res.optLong("start_time", 0)));
             });
         });
     }
