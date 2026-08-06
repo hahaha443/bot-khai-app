@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
     // toàn bộ UI với màu mới, khỏi phải dò từng View đã tạo để cập nhật tay.
     private int BG, CARD, ACC, OK, BAD, TXT, SUB;
     private static final String NOT_LINKED_MSG =
-            "🔒 Chưa liên kết token quản lý bot — vào tab Token, dán token rồi bấm Liên kết để xem được mục này.";
+            "🔒 Chưa liên kết token quản lý bot — vào tab Token, dán token rồi bấm Liên kết để xem đc mục này.";
 
     private boolean darkMode = true;
 
@@ -139,7 +139,7 @@ public class MainActivity extends Activity {
         loginView.setPadding(48, 48, 48, 48);
 
         TextView title = new TextView(this);
-        title.setText("🔐 Đăng nhập quản lý");
+        title.setText("🔐 Đăng nhập lý");
         title.setTextColor(TXT);
         title.setTextSize(20);
         title.setPadding(0, 0, 0, 40);
@@ -200,7 +200,7 @@ public class MainActivity extends Activity {
                     prefs.edit().putString("session_id", sessionId).apply();
                     ui.post(this::showMain);
                 } else {
-                    ui.post(() -> err.setText("Sai tài khoản hoặc mật khẩu."));
+                    ui.post(() -> err.setText("Sai tài khn hoặc mật khẩu."));
                 }
             } catch (Exception e) {
                 ui.post(() -> err.setText("Lỗi kết nối server."));
