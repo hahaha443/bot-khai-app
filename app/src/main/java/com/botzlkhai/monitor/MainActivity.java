@@ -99,7 +99,7 @@ public class MainActivity extends Activity {
     private FrameLayout root;
     private LinearLayout loginView, mainView;
     private TextView statusDot, statusText, uptimeVal, sysVal, groupsVal, friendsVal, cmdLogView, botTitleView;
-    private TextView modulesVal, startedAtVal;
+    private TextView pingVal, apiLatencyVal, softwareVal, softwareVerVal, startedAtVal;
     private LinearLayout contentArea;
     private JSONObject groupsCache = new JSONObject(), friendsCache = new JSONObject();
     private String currentGroupId, currentFriendId;
@@ -354,8 +354,9 @@ public class MainActivity extends Activity {
         row1.setPadding(24, 16, 24, 0);
         LinearLayout c1 = card("Uptime");
         uptimeVal = valText("-"); c1.addView(uptimeVal);
-        LinearLayout c2 = card("Nhiệt độ / RAM");
-        sysVal = valText("-"); c2.addView(sysVal);
+        LinearLayout c2 = card("Khởi động lúc");
+        startedAtVal = valText("-"); startedAtVal.setTextSize(15);
+        c2.addView(startedAtVal);
         row1.addView(c1); row1.addView(c2);
         contentArea.addView(row1);
 
@@ -374,14 +375,33 @@ public class MainActivity extends Activity {
         LinearLayout row3 = new LinearLayout(this);
         row3.setOrientation(LinearLayout.HORIZONTAL);
         row3.setPadding(24, 0, 24, 0);
-        LinearLayout c5 = card("Modules");
-        modulesVal = valText("-"); c5.addView(modulesVal);
-        c5.setOnClickListener(v -> switchTab("commands"));
-        LinearLayout c6 = card("Khởi động lúc");
-        startedAtVal = valText("-"); startedAtVal.setTextSize(15);
-        c6.addView(startedAtVal);
+        LinearLayout c5 = card("Ping mạng");
+        pingVal = valText("-"); c5.addView(pingVal);
+        LinearLayout c6 = card("Độ trễ API (máy chủ)");
+        apiLatencyVal = valText("-"); apiLatencyVal.setTextSize(18);
+        c6.addView(apiLatencyVal);
         row3.addView(c5); row3.addView(c6);
         contentArea.addView(row3);
+
+        LinearLayout row4 = new LinearLayout(this);
+        row4.setOrientation(LinearLayout.HORIZONTAL);
+        row4.setPadding(24, 0, 24, 0);
+        LinearLayout c7 = card("Phần mềm");
+        softwareVal = valText("-"); softwareVal.setTextSize(18);
+        c7.addView(softwareVal);
+        LinearLayout c8 = card("Phiên bản");
+        softwareVerVal = valText("-"); softwareVerVal.setTextSize(18);
+        c8.addView(softwareVerVal);
+        row4.addView(c7); row4.addView(c8);
+        contentArea.addView(row4);
+
+        LinearLayout row5 = new LinearLayout(this);
+        row5.setOrientation(LinearLayout.HORIZONTAL);
+        row5.setPadding(24, 0, 24, 0);
+        LinearLayout c9 = card("Nhiệt độ / RAM");
+        sysVal = valText("-"); c9.addView(sysVal);
+        row5.addView(c9);
+        contentArea.addView(row5);
 
         contentArea.addView(sectionTitle("LỆNH GẦN ĐÂY"));
         cmdLogView = new TextView(this);
@@ -457,7 +477,11 @@ public class MainActivity extends Activity {
         contentArea.addView(back);
 
         contentArea.addView(detailRow("ID nhóm", gid));
-        contentArea.addView(detailRow("Key bot", g.optString("key", gid)));
+        String botOwnerTxt;
+        if (g.isNull("bot_is_owner") || !g.has("bot_is_owner")) botOwnerTxt = "- (chưa xác định)";
+        else botOwnerTxt = g.optBoolean("bot_is_owner", false) ? "✅ Có" : "❌ Không (bot không kick được)";
+        contentArea.addView(detailRow("Trưởng nhóm (key vàng)", botOwnerTxt));
+        contentArea.addView(detailRow("Chủ nhóm", g.optString("owner_name", "-")));
         contentArea.addView(detailRow("Tên nhóm", g.optString("name", gid)));
         contentArea.addView(detailRow("Số thành viên", String.valueOf(g.optInt("member_count", 0))));
         contentArea.addView(detailRow("Bot hoạt động từ", fmtTime(g.optLong("added_at", 0))));
@@ -540,6 +564,24 @@ public class MainActivity extends Activity {
         return SUB;                                                 // xám - thành viên
     }
 
+    private void sendFriendPermCmd(String uid, String level) {
+        io.execute(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("action", "set_permission");
+                JSONObject params = new JSONObject();
+                params.put("uid", uid);
+                params.put("level", level);
+                body.put("params", params);
+                httpJson("POST", "/commands.php", body, sessionId);
+                ui.post(() -> {
+                    android.widget.Toast.makeText(this, "Đã gửi lệnh đổi quyền, đang cập nhật...", android.widget.Toast.LENGTH_SHORT).show();
+                    contentArea.postDelayed(() -> openFriendDetail(uid), 1500);
+                });
+            } catch (Exception ignored) {}
+        });
+    }
+
     private void openFriendDetail(String uid) {
         currentFriendId = uid;
         JSONObject f = friendsCache.optJSONObject(uid);
@@ -550,6 +592,19 @@ public class MainActivity extends Activity {
         contentArea.addView(detailRowWithCopy("ID", uid));
         contentArea.addView(detailRow("Tên", f.optString("name", uid)));
         contentArea.addView(detailRow("Quyền", permLabel(perm), permColor(perm)));
+
+        if (!"owner".equals(perm)) {
+            Button toOwner = actionButton("👑 Đặt làm Admin chính", () -> sendFriendPermCmd(uid, "owner"));
+            contentArea.addView(toOwner);
+        }
+        if (!"admin".equals(perm)) {
+            Button toAdmin = actionButton("🔑 Đặt làm Admin thường", () -> sendFriendPermCmd(uid, "admin"));
+            contentArea.addView(toAdmin);
+        }
+        if (!"member".equals(perm)) {
+            Button toMember = actionButton("🙋 Hạ xuống Thành viên", () -> sendFriendPermCmd(uid, "member"));
+            contentArea.addView(toMember);
+        }
     }
 
     // ---------- Commands (module list) ----------
@@ -1116,7 +1171,10 @@ public class MainActivity extends Activity {
                     if (sysVal != null) sysVal.setText("-");
                     if (groupsVal != null) groupsVal.setText("-");
                     if (friendsVal != null) friendsVal.setText("-");
-                    if (modulesVal != null) modulesVal.setText("-");
+                    if (pingVal != null) pingVal.setText("-");
+                    if (apiLatencyVal != null) apiLatencyVal.setText("-");
+                    if (softwareVal != null) softwareVal.setText("-");
+                    if (softwareVerVal != null) softwareVerVal.setText("-");
                     if (startedAtVal != null) startedAtVal.setText("-");
                     return;
                 }
@@ -1139,7 +1197,22 @@ public class MainActivity extends Activity {
                 }
                 if (groupsVal != null) groupsVal.setText(String.valueOf(res.optInt("groups", 0)));
                 if (friendsVal != null) friendsVal.setText(String.valueOf(res.optInt("friends", 0)));
-                if (modulesVal != null) modulesVal.setText(String.valueOf(res.optInt("modules_count", 0)));
+                if (pingVal != null) {
+                    int pm = res.optInt("ping_ms", -1);
+                    pingVal.setText(pm >= 0 ? (pm + " ms") : "-");
+                }
+                if (apiLatencyVal != null) {
+                    int al = res.optInt("api_latency_ms", -1);
+                    apiLatencyVal.setText(al >= 0 ? (al + " ms") : "-");
+                }
+                if (softwareVal != null) {
+                    String sw = res.optString("software", "");
+                    softwareVal.setText(sw.isEmpty() ? "-" : sw);
+                }
+                if (softwareVerVal != null) {
+                    String sv = res.optString("software_version", "");
+                    softwareVerVal.setText(sv.isEmpty() ? "-" : ("Python " + sv));
+                }
                 if (startedAtVal != null) startedAtVal.setText(fmtTime(res.optLong("start_time", 0)));
             });
         });
