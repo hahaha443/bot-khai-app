@@ -494,8 +494,16 @@ public class MainActivity extends Activity {
 
         Button toggleAntilink = actionButton("Bật/tắt Antilink", () -> sendGroupCmd("toggle_antilink"));
         Button toggleWelcome = actionButton("Bật/tắt Welcome", () -> sendGroupCmd("toggle_welcome"));
-        contentArea.addView(toggleAntilink);
-        contentArea.addView(toggleWelcome);
+        LinearLayout toggleRow = new LinearLayout(this);
+        toggleRow.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams halfLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        halfLp.rightMargin = 8;
+        toggleAntilink.setLayoutParams(halfLp);
+        LinearLayout.LayoutParams halfLp2 = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        toggleWelcome.setLayoutParams(halfLp2);
+        toggleRow.addView(toggleAntilink);
+        toggleRow.addView(toggleWelcome);
+        contentArea.addView(toggleRow);
     }
 
     private void sendGroupCmd(String action) {
@@ -598,7 +606,7 @@ public class MainActivity extends Activity {
 
         LinearLayout permRow = detailRow("Quyền (bấm để đổi)", permLabel(perm), permColor(perm));
         LinearLayout permMenu = new LinearLayout(this);
-        permMenu.setOrientation(LinearLayout.VERTICAL);
+        permMenu.setOrientation(LinearLayout.HORIZONTAL);
         permMenu.setPadding(24, 8, 24, 8);
         permMenu.setVisibility(View.GONE);
         permRow.setOnClickListener(v -> permMenu.setVisibility(
@@ -607,15 +615,15 @@ public class MainActivity extends Activity {
 
         if (!"owner".equals(perm)) {
             Button toOwner = actionButton("👑 Đặt làm Admin chính", () -> sendFriendPermCmd(uid, "owner"));
-            permMenu.addView(toOwner);
+            addRowItem(permMenu, toOwner);
         }
         if (!"admin".equals(perm)) {
             Button toAdmin = actionButton("🔑 Đặt làm Admin thường", () -> sendFriendPermCmd(uid, "admin"));
-            permMenu.addView(toAdmin);
+            addRowItem(permMenu, toAdmin);
         }
         if (!"member".equals(perm)) {
             Button toMember = actionButton("🙋 Hạ xuống Thành viên", () -> sendFriendPermCmd(uid, "member"));
-            permMenu.addView(toMember);
+            addRowItem(permMenu, toMember);
         }
         contentArea.addView(permMenu);
 
@@ -630,6 +638,13 @@ public class MainActivity extends Activity {
                 () -> sendUserBlockCmd(uid));
         if (blocked) toggleBlock.setTextColor(OK); else toggleBlock.setTextColor(BAD);
         contentArea.addView(toggleBlock);
+    }
+
+    private void addRowItem(LinearLayout row, View v) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        lp.rightMargin = 8;
+        v.setLayoutParams(lp);
+        row.addView(v);
     }
 
     private String friendStatusText(JSONObject f) {
