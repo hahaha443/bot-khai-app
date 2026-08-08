@@ -100,6 +100,7 @@ public class MainActivity extends Activity {
     private LinearLayout loginView, mainView;
     private TextView statusDot, statusText, uptimeVal, sysVal, groupsVal, friendsVal, cmdLogView, botTitleView;
     private TextView pingVal, apiLatencyVal, softwareVal, softwareVerVal, startedAtVal;
+    private LinearLayout onlineStatusView;
     private LinearLayout contentArea;
     private JSONObject groupsCache = new JSONObject(), friendsCache = new JSONObject();
     private String currentGroupId, currentFriendId;
@@ -480,7 +481,7 @@ public class MainActivity extends Activity {
         String role = g.optString("bot_role", "");
         String botOwnerTxt;
         if ("owner".equals(role)) botOwnerTxt = "🥇 Trưởng nhóm (key vàng) — bot kick được";
-        else if ("deputy".equals(role)) botOwnerTxt = "🥈 Phó nhóm (key bạc) — bot KHÔNG kick được (Zalo chỉ cho Trưởng nhóm kick)";
+        else if ("deputy".equals(role)) botOwnerTxt = "🥈 Phó nhóm (key bạc) — bot kick được";
         else if ("member".equals(role)) botOwnerTxt = "👤 Thành viên thường — không có quyền quản trị";
         else botOwnerTxt = "- (chưa xác định)";
         contentArea.addView(detailRow("Quyền bot trong nhóm", botOwnerTxt));
@@ -594,20 +595,33 @@ public class MainActivity extends Activity {
         contentArea.addView(backButton("← Quay lại danh sách bạn bè", () -> switchTab("friends")));
         contentArea.addView(detailRowWithCopy("ID", uid));
         contentArea.addView(detailRow("Tên", f.optString("name", uid)));
-        contentArea.addView(detailRow("Quyền", permLabel(perm), permColor(perm)));
+
+        LinearLayout permRow = detailRow("Quyền (bấm để đổi)", permLabel(perm), permColor(perm));
+        LinearLayout permMenu = new LinearLayout(this);
+        permMenu.setOrientation(LinearLayout.VERTICAL);
+        permMenu.setPadding(24, 8, 24, 8);
+        permMenu.setVisibility(View.GONE);
+        permRow.setOnClickListener(v -> permMenu.setVisibility(
+                permMenu.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
+        contentArea.addView(permRow);
 
         if (!"owner".equals(perm)) {
             Button toOwner = actionButton("👑 Đặt làm Admin chính", () -> sendFriendPermCmd(uid, "owner"));
-            contentArea.addView(toOwner);
+            permMenu.addView(toOwner);
         }
         if (!"admin".equals(perm)) {
             Button toAdmin = actionButton("🔑 Đặt làm Admin thường", () -> sendFriendPermCmd(uid, "admin"));
-            contentArea.addView(toAdmin);
+            permMenu.addView(toAdmin);
         }
         if (!"member".equals(perm)) {
             Button toMember = actionButton("🙋 Hạ xuống Thành viên", () -> sendFriendPermCmd(uid, "member"));
-            contentArea.addView(toMember);
+            permMenu.addView(toMember);
         }
+        contentArea.addView(permMenu);
+
+        onlineStatusView = detailRow("Trạng thái", friendStatusText(f), SUB);
+        contentArea.addView(onlineStatusView);
+        refreshFriendStatus(uid);
 
         boolean blocked = f.optBoolean("blocked", false);
         int blockedColor = blocked ? BAD : OK;
@@ -616,6 +630,40 @@ public class MainActivity extends Activity {
                 () -> sendUserBlockCmd(uid));
         if (blocked) toggleBlock.setTextColor(OK); else toggleBlock.setTextColor(BAD);
         contentArea.addView(toggleBlock);
+    }
+
+    private String friendStatusText(JSONObject f) {
+        if (f.isNull("is_online") || !f.has("is_online")) return "Chưa xác định (đang kiểm tra...)";
+        Boolean online = f.optBoolean("is_online", false);
+        if (f.optBoolean("is_online", false)) return "🟢 Đang online";
+        long last = f.optLong("last_active", 0);
+        return last > 0 ? ("⚪ Offline · lần cuối " + fmtTime(last)) : "⚪ Offline";
+    }
+
+    private void refreshFriendStatus(String uid) {
+        io.execute(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("action", "refresh_friend_status");
+                JSONObject params = new JSONObject();
+                params.put("uid", uid);
+                body.put("params", params);
+                httpJson("POST", "/commands.php", body, sessionId);
+                Thread.sleep(2500);
+                JSONObject res = httpJson("GET", "/friends.php", null, sessionId);
+                if (res != null && res.optBoolean("linked", true)) {
+                    friendsCache = res;
+                    JSONObject f = friendsCache.optJSONObject(uid);
+                    if (f != null && onlineStatusView != null && uid.equals(currentFriendId)) {
+                        String txt = friendStatusText(f);
+                        ui.post(() -> {
+                            TextView vt = (TextView) onlineStatusView.getChildAt(1);
+                            if (vt != null) vt.setText(txt);
+                        });
+                    }
+                }
+            } catch (Exception ignored) {}
+        });
     }
 
     private void sendUserBlockCmd(String uid) {
