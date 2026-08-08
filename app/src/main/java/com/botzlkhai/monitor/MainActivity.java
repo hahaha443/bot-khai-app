@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
     // toàn bộ UI với màu mới, khỏi phải dò từng View đã tạo để cập nhật tay.
     private int BG, CARD, ACC, OK, BAD, TXT, SUB;
     private static final String NOT_LINKED_MSG =
-            "🔒 Chưa liên kết token quản lý bot — vào tab Token, dán token rồi bấm Liên kết để xem đc mục này.";
+            "🔒 Chưa liên kết token quản lý bot — vào tab Token, dán token rồi bấm Liên kết để xem được mục này.";
 
     private boolean darkMode = true;
 
@@ -139,7 +139,7 @@ public class MainActivity extends Activity {
         loginView.setPadding(48, 48, 48, 48);
 
         TextView title = new TextView(this);
-        title.setText("🔐 Đăng nhập lý");
+        title.setText("🔐 Đăng nhập quản lý");
         title.setTextColor(TXT);
         title.setTextSize(20);
         title.setPadding(0, 0, 0, 40);
@@ -200,7 +200,7 @@ public class MainActivity extends Activity {
                     prefs.edit().putString("session_id", sessionId).apply();
                     ui.post(this::showMain);
                 } else {
-                    ui.post(() -> err.setText("Sai tài khn hoặc mật khẩu."));
+                    ui.post(() -> err.setText("Sai tài khoản hoặc mật khẩu."));
                 }
             } catch (Exception e) {
                 ui.post(() -> err.setText("Lỗi kết nối server."));
@@ -477,10 +477,13 @@ public class MainActivity extends Activity {
         contentArea.addView(back);
 
         contentArea.addView(detailRow("ID nhóm", gid));
+        String role = g.optString("bot_role", "");
         String botOwnerTxt;
-        if (g.isNull("bot_is_owner") || !g.has("bot_is_owner")) botOwnerTxt = "- (chưa xác định)";
-        else botOwnerTxt = g.optBoolean("bot_is_owner", false) ? "✅ Có" : "❌ Không (bot không kick được)";
-        contentArea.addView(detailRow("Trưởng nhóm (key vàng)", botOwnerTxt));
+        if ("owner".equals(role)) botOwnerTxt = "🥇 Trưởng nhóm (key vàng) — bot kick được";
+        else if ("deputy".equals(role)) botOwnerTxt = "🥈 Phó nhóm (key bạc) — bot KHÔNG kick được (Zalo chỉ cho Trưởng nhóm kick)";
+        else if ("member".equals(role)) botOwnerTxt = "👤 Thành viên thường — không có quyền quản trị";
+        else botOwnerTxt = "- (chưa xác định)";
+        contentArea.addView(detailRow("Quyền bot trong nhóm", botOwnerTxt));
         contentArea.addView(detailRow("Chủ nhóm", g.optString("owner_name", "-")));
         contentArea.addView(detailRow("Tên nhóm", g.optString("name", gid)));
         contentArea.addView(detailRow("Số thành viên", String.valueOf(g.optInt("member_count", 0))));
@@ -605,6 +608,31 @@ public class MainActivity extends Activity {
             Button toMember = actionButton("🙋 Hạ xuống Thành viên", () -> sendFriendPermCmd(uid, "member"));
             contentArea.addView(toMember);
         }
+
+        boolean blocked = f.optBoolean("blocked", false);
+        int blockedColor = blocked ? BAD : OK;
+        contentArea.addView(detailRow("Cho phép dùng bot", blocked ? "🚫 Đang bị chặn" : "✅ Bình thường", blockedColor));
+        Button toggleBlock = actionButton(blocked ? "✅ Mở lại quyền dùng bot" : "🚫 Chặn dùng bot",
+                () -> sendUserBlockCmd(uid));
+        if (blocked) toggleBlock.setTextColor(OK); else toggleBlock.setTextColor(BAD);
+        contentArea.addView(toggleBlock);
+    }
+
+    private void sendUserBlockCmd(String uid) {
+        io.execute(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("action", "toggle_user_block");
+                JSONObject params = new JSONObject();
+                params.put("uid", uid);
+                body.put("params", params);
+                httpJson("POST", "/commands.php", body, sessionId);
+                ui.post(() -> {
+                    android.widget.Toast.makeText(this, "Đã gửi lệnh, đang cập nhật...", android.widget.Toast.LENGTH_SHORT).show();
+                    contentArea.postDelayed(() -> openFriendDetail(uid), 1500);
+                });
+            } catch (Exception ignored) {}
+        });
     }
 
     // ---------- Commands (module list) ----------
