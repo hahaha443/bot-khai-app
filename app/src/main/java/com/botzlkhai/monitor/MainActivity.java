@@ -52,7 +52,7 @@ public class MainActivity extends Activity {
     // Màu KHÔNG còn static final — đổi được lúc chạy khi bật/tắt theme sáng/tối
     // (xem applyThemeColors()). Đổi theme xong app tự recreate() để build lại
     // toàn bộ UI với màu mới, khỏi phải dò từng View đã tạo để cập nhật tay.
-    private int BG, CARD, ACC, OK, BAD, TXT, SUB;
+    private int BG, CARD, ACC, ACC_TEXT, OK, BAD, TXT, SUB, DIVIDER;
     private static final String NOT_LINKED_MSG =
             "🔒 Chưa liên kết token quản lý bot — vào tab Token, dán token rồi bấm Liên kết để xem được mục này.";
 
@@ -60,21 +60,25 @@ public class MainActivity extends Activity {
 
     private void applyThemeColors() {
         if (darkMode) {
-            BG = Color.parseColor("#0b0e14");
-            CARD = Color.parseColor("#151a24");
-            ACC = Color.parseColor("#4f8cff");
-            OK = Color.parseColor("#2ecc71");
-            BAD = Color.parseColor("#e74c3c");
-            TXT = Color.parseColor("#e6e9ef");
-            SUB = Color.parseColor("#8b93a5");
+            BG = Color.parseColor("#0a0d12");
+            CARD = Color.parseColor("#12161d");
+            ACC = Color.parseColor("#f5a544");
+            ACC_TEXT = Color.parseColor("#1a1206"); // chữ tối trên nền amber sáng — đủ tương phản
+            OK = Color.parseColor("#22c08f");
+            BAD = Color.parseColor("#f0594a");
+            TXT = Color.parseColor("#eef0f0");
+            SUB = Color.parseColor("#7b8494");
+            DIVIDER = Color.parseColor("#1c222c");
         } else {
-            BG = Color.parseColor("#f2f4f8");
+            BG = Color.parseColor("#f6f5f1");
             CARD = Color.parseColor("#ffffff");
-            ACC = Color.parseColor("#2f6fe0");
-            OK = Color.parseColor("#1e9e5a");
-            BAD = Color.parseColor("#d6483a");
-            TXT = Color.parseColor("#1a1e27");
-            SUB = Color.parseColor("#68707e");
+            ACC = Color.parseColor("#c97a2e");
+            ACC_TEXT = Color.parseColor("#ffffff");
+            OK = Color.parseColor("#0f9d70");
+            BAD = Color.parseColor("#d1483a");
+            TXT = Color.parseColor("#1b1f27");
+            SUB = Color.parseColor("#6b7280");
+            DIVIDER = Color.parseColor("#e6e3d9");
         }
     }
 
@@ -165,7 +169,7 @@ public class MainActivity extends Activity {
 
         Button loginBtn = new Button(this);
         loginBtn.setText("Đăng nhập");
-        loginBtn.setTextColor(Color.WHITE);
+        loginBtn.setTextColor(ACC_TEXT);
         loginBtn.setBackgroundColor(ACC);
         loginBtn.setOnClickListener(v -> {
             String u = user.getText().toString().trim();
@@ -491,19 +495,64 @@ public class MainActivity extends Activity {
         contentArea.addView(detailRow("Bot hoạt động từ", fmtTime(g.optLong("added_at", 0))));
         contentArea.addView(detailRow("Antilink", g.optBoolean("antilink", false) ? "Bật" : "Tắt"));
         contentArea.addView(detailRow("Welcome", g.optBoolean("welcome", false) ? "Bật" : "Tắt"));
+        contentArea.addView(detailRow("React tự động", g.optBoolean("react", false) ? "Bật" : "Tắt"));
 
         Button toggleAntilink = actionButton("Bật/tắt Antilink", () -> sendGroupCmd("toggle_antilink"));
         Button toggleWelcome = actionButton("Bật/tắt Welcome", () -> sendGroupCmd("toggle_welcome"));
+        Button toggleReact = actionButton("Bật/tắt React", () -> sendGroupCmd("toggle_react"));
         LinearLayout toggleRow = new LinearLayout(this);
         toggleRow.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams halfLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
-        halfLp.rightMargin = 8;
-        toggleAntilink.setLayoutParams(halfLp);
-        LinearLayout.LayoutParams halfLp2 = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
-        toggleWelcome.setLayoutParams(halfLp2);
-        toggleRow.addView(toggleAntilink);
-        toggleRow.addView(toggleWelcome);
+        addRowItem(toggleRow, toggleAntilink);
+        addRowItem(toggleRow, toggleWelcome);
+        addRowItem(toggleRow, toggleReact);
         contentArea.addView(toggleRow);
+
+        Button refreshInfoBtn = actionButton("🔄 Làm mới thông tin nhóm (bỏ qua cache)", () -> sendGroupCmd("refresh_group_info"));
+        contentArea.addView(refreshInfoBtn);
+
+        contentArea.addView(sectionTitle("GỬI TIN NHẮN TỚI NHÓM NÀY"));
+        final EditText msgInput = new EditText(this);
+        msgInput.setHint("Nhập nội dung...");
+        msgInput.setHintTextColor(SUB);
+        msgInput.setTextColor(TXT);
+        msgInput.setMinLines(3);
+        msgInput.setGravity(Gravity.TOP | Gravity.START);
+        msgInput.setBackground(roundedBg(CARD, 10));
+        msgInput.setPadding(28, 20, 28, 20);
+        LinearLayout.LayoutParams msgLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        msgLp.leftMargin = 24; msgLp.rightMargin = 24; msgLp.bottomMargin = 12;
+        msgInput.setLayoutParams(msgLp);
+        contentArea.addView(msgInput);
+
+        Button sendMsgBtn = actionButton("📤 Gửi", () -> {
+            String text = msgInput.getText().toString().trim();
+            if (text.isEmpty()) return;
+            sendGroupMessage(gid, text);
+            msgInput.setText("");
+        });
+        sendMsgBtn.setBackground(roundedBg(ACC, 10));
+        sendMsgBtn.setTextColor(ACC_TEXT);
+        LinearLayout.LayoutParams sendLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        sendLp.leftMargin = 24; sendLp.rightMargin = 24; sendLp.bottomMargin = 24;
+        sendMsgBtn.setLayoutParams(sendLp);
+        contentArea.addView(sendMsgBtn);
+    }
+
+    private void sendGroupMessage(String gid, String text) {
+        io.execute(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("action", "send_group_message");
+                body.put("group_id", gid);
+                JSONObject params = new JSONObject();
+                params.put("text", text);
+                body.put("params", params);
+                httpJson("POST", "/commands.php", body, sessionId);
+                ui.post(() -> android.widget.Toast.makeText(this, "Đã gửi lệnh, bot sẽ gửi tin nhắn trong giây lát.", android.widget.Toast.LENGTH_SHORT).show());
+            } catch (Exception ignored) {}
+        });
     }
 
     private void sendGroupCmd(String action) {
@@ -783,7 +832,7 @@ public class MainActivity extends Activity {
         if (hasCmd) {
             Button copyBtn = new Button(this);
             copyBtn.setText("📋 Copy lệnh");
-            copyBtn.setTextColor(Color.WHITE);
+            copyBtn.setTextColor(ACC_TEXT);
             copyBtn.setBackground(roundedBg(ACC, 10));
             LinearLayout.LayoutParams cLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
             cLp.rightMargin = 8;
