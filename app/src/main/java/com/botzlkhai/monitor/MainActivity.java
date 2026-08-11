@@ -99,10 +99,11 @@ public class MainActivity extends Activity {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private SharedPreferences prefs;
     private String sessionId;
+    private String currentRole = "member";
 
     private FrameLayout root;
     private LinearLayout loginView, mainView;
-    private TextView statusDot, statusText, uptimeVal, sysVal, groupsVal, friendsVal, cmdLogView, botTitleView;
+    private TextView statusDot, statusText, uptimeVal, sysVal, groupsVal, friendsVal, botTitleView;
     private TextView pingVal, apiLatencyVal, softwareVal, softwareVerVal, startedAtVal;
     private LinearLayout onlineStatusView;
     private LinearLayout contentArea;
@@ -143,29 +144,58 @@ public class MainActivity extends Activity {
         loginView.setBackgroundColor(BG);
         loginView.setPadding(48, 48, 48, 48);
 
+        // Logo vẽ bằng code (không dùng emoji robot nữa): ô vuông bo góc màu
+        // amber + hình thoi nhỏ ở giữa — đồng bộ chấm trạng thái pulse trên header.
+        FrameLayout logo = new FrameLayout(this);
+        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(140, 140);
+        logoLp.bottomMargin = 28;
+        logo.setLayoutParams(logoLp);
+        logo.setBackground(roundedBg(ACC, 32));
+        View diamond = new View(this);
+        FrameLayout.LayoutParams dLp2 = new FrameLayout.LayoutParams(40, 40);
+        dLp2.gravity = Gravity.CENTER;
+        diamond.setLayoutParams(dLp2);
+        diamond.setBackgroundColor(BG);
+        diamond.setRotation(45f);
+        logo.addView(diamond);
+        loginView.addView(logo);
+
         TextView title = new TextView(this);
-        title.setText("🔐 Đăng nhập quản lý");
+        title.setText("Bot-ZL-Khai Monitor");
         title.setTextColor(TXT);
-        title.setTextSize(20);
-        title.setPadding(0, 0, 0, 40);
+        title.setTextSize(19);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
         loginView.addView(title);
+
+        TextView subtitle = new TextView(this);
+        subtitle.setText("Đăng nhập để tiếp tục");
+        subtitle.setTextColor(SUB);
+        subtitle.setTextSize(12);
+        subtitle.setPadding(0, 6, 0, 28);
+        loginView.addView(subtitle);
 
         TextView err = new TextView(this);
         err.setTextColor(BAD);
         err.setTextSize(13);
-        err.setPadding(0, 0, 0, 16);
+        err.setPadding(0, 0, 0, 12);
         loginView.addView(err);
+
+        LinearLayout loginBox = new LinearLayout(this);
+        loginBox.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout registerBox = new LinearLayout(this);
+        registerBox.setOrientation(LinearLayout.VERTICAL);
+        registerBox.setVisibility(View.GONE);
 
         EditText user = new EditText(this);
         user.setHint("Tài khoản");
         styleInput(user);
-        loginView.addView(user);
+        loginBox.addView(user);
 
         EditText pass = new EditText(this);
         pass.setHint("Mật khẩu");
         pass.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         styleInput(pass);
-        loginView.addView(pass);
+        loginBox.addView(pass);
 
         Button loginBtn = new Button(this);
         loginBtn.setText("Đăng nhập");
@@ -177,15 +207,71 @@ public class MainActivity extends Activity {
             if (u.isEmpty() || p.isEmpty()) { err.setText("Nhập đủ tài khoản và mật khẩu."); return; }
             doLogin(u, p, err);
         });
-        loginView.addView(loginBtn);
+        applyPressFeedback(loginBtn);
+        loginBox.addView(loginBtn);
 
+        TextView toRegister = authSwitchLink("Chưa có tài khoản? Đăng ký", () -> {
+            err.setText(""); subtitle.setText("Cần mã mời từ admin để đăng ký");
+            loginBox.setVisibility(View.GONE); registerBox.setVisibility(View.VISIBLE);
+        });
+        loginBox.addView(toRegister);
+
+        EditText regUser = new EditText(this);
+        regUser.setHint("Tài khoản mới (chữ/số/_ , tối thiểu 3 ký tự)");
+        styleInput(regUser);
+        registerBox.addView(regUser);
+
+        EditText regPass = new EditText(this);
+        regPass.setHint("Mật khẩu (tối thiểu 6 ký tự)");
+        regPass.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        styleInput(regPass);
+        registerBox.addView(regPass);
+
+        EditText regInvite = new EditText(this);
+        regInvite.setHint("Mã mời (xin admin cấp)");
+        styleInput(regInvite);
+        registerBox.addView(regInvite);
+
+        Button registerBtn = new Button(this);
+        registerBtn.setText("Đăng ký");
+        registerBtn.setTextColor(ACC_TEXT);
+        registerBtn.setBackgroundColor(ACC);
+        registerBtn.setOnClickListener(v -> {
+            String u = regUser.getText().toString().trim();
+            String p = regPass.getText().toString();
+            String inv = regInvite.getText().toString().trim();
+            if (u.isEmpty() || p.isEmpty() || inv.isEmpty()) { err.setText("Điền đủ tài khoản, mật khẩu và mã mời."); return; }
+            doRegister(u, p, inv, err);
+        });
+        applyPressFeedback(registerBtn);
+        registerBox.addView(registerBtn);
+
+        TextView toLogin = authSwitchLink("Đã có tài khoản? Đăng nhập", () -> {
+            err.setText(""); subtitle.setText("Đăng nhập để tiếp tục");
+            registerBox.setVisibility(View.GONE); loginBox.setVisibility(View.VISIBLE);
+        });
+        registerBox.addView(toLogin);
+
+        loginView.addView(loginBox);
+        loginView.addView(registerBox);
         root.addView(loginView);
+    }
+
+    private TextView authSwitchLink(String text, Runnable onClick) {
+        TextView t = new TextView(this);
+        t.setText(text);
+        t.setTextColor(ACC);
+        t.setTextSize(12.5f);
+        t.setPadding(0, 16, 0, 0);
+        t.setGravity(Gravity.CENTER);
+        t.setOnClickListener(v -> onClick.run());
+        return t;
     }
 
     private void styleInput(EditText e) {
         e.setTextColor(TXT);
         e.setHintTextColor(SUB);
-        e.setBackgroundColor(CARD);
+        e.setBackground(roundedBg(CARD, 10));
         e.setPadding(30, 30, 30, 30);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -193,19 +279,53 @@ public class MainActivity extends Activity {
         e.setLayoutParams(lp);
     }
 
+    private void fetchWhoAmI() {
+        io.execute(() -> {
+            JSONObject res = httpJson("GET", "/whoami.php", null, sessionId);
+            if (res != null) currentRole = res.optString("role", "member");
+        });
+    }
+
     private void doLogin(String username, String password, TextView err) {
         io.execute(() -> {
             try {
                 JSONObject body = new JSONObject();
+                body.put("action", "login");
                 body.put("username", username);
                 body.put("password", password);
                 JSONObject res = httpJson("POST", "/auth.php", body, null);
                 if (res != null && res.optBoolean("ok", false)) {
                     sessionId = res.getString("session_id");
+                    currentRole = res.optString("role", "member");
                     prefs.edit().putString("session_id", sessionId).apply();
                     ui.post(this::showMain);
                 } else {
-                    ui.post(() -> err.setText("Sai tài khoản hoặc mật khẩu."));
+                    String msg = res != null ? res.optString("message", "Sai tài khoản hoặc mật khẩu.") : "Sai tài khoản hoặc mật khẩu.";
+                    ui.post(() -> err.setText(msg));
+                }
+            } catch (Exception e) {
+                ui.post(() -> err.setText("Lỗi kết nối server."));
+            }
+        });
+    }
+
+    private void doRegister(String username, String password, String invite, TextView err) {
+        io.execute(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("action", "register");
+                body.put("username", username);
+                body.put("password", password);
+                body.put("invite_code", invite);
+                JSONObject res = httpJson("POST", "/auth.php", body, null);
+                if (res != null && res.optBoolean("ok", false)) {
+                    sessionId = res.getString("session_id");
+                    currentRole = res.optString("role", "member");
+                    prefs.edit().putString("session_id", sessionId).apply();
+                    ui.post(this::showMain);
+                } else {
+                    String msg = res != null ? res.optString("message", "Đăng ký thất bại.") : "Đăng ký thất bại.";
+                    ui.post(() -> err.setText(msg));
                 }
             } catch (Exception e) {
                 ui.post(() -> err.setText("Lỗi kết nối server."));
@@ -232,10 +352,26 @@ public class MainActivity extends Activity {
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setPadding(32, 32, 32, 16);
         header.setGravity(Gravity.CENTER_VERTICAL);
+
+        FrameLayout logo = new FrameLayout(this);
+        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(66, 66);
+        logoLp.rightMargin = 20;
+        logo.setLayoutParams(logoLp);
+        logo.setBackground(roundedBg(ACC, 18));
+        View diamond = new View(this);
+        FrameLayout.LayoutParams dLp3 = new FrameLayout.LayoutParams(20, 20);
+        dLp3.gravity = Gravity.CENTER;
+        diamond.setLayoutParams(dLp3);
+        diamond.setBackgroundColor(BG);
+        diamond.setRotation(45f);
+        logo.addView(diamond);
+        header.addView(logo);
+
         TextView title = new TextView(this);
-        title.setText("🤖 Bot-ZL-Khai");
+        title.setText("Bot-ZL-Khai");
         title.setTextColor(TXT);
         title.setTextSize(18);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
         botTitleView = title;
         LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
         header.addView(title, titleLp);
@@ -247,6 +383,7 @@ public class MainActivity extends Activity {
         statusText.setText(" Đang kiểm tra...");
         statusText.setTextColor(TXT);
         header.addView(statusText);
+        fetchWhoAmI();
 
         Button themeBtn = new Button(this);
         themeBtn.setText(darkMode ? "🌙" : "☀️");
@@ -408,15 +545,7 @@ public class MainActivity extends Activity {
         row5.addView(c9);
         contentArea.addView(row5);
 
-        contentArea.addView(sectionTitle("LỆNH GẦN ĐÂY"));
-        cmdLogView = new TextView(this);
-        cmdLogView.setTextColor(SUB);
-        cmdLogView.setPadding(32, 0, 32, 32);
-        cmdLogView.setText("Chưa có gì.");
-        contentArea.addView(cmdLogView);
-
         refreshStatus();
-        refreshCmdLog();
     }
 
     private TextView valText(String v) {
@@ -484,8 +613,8 @@ public class MainActivity extends Activity {
         contentArea.addView(detailRow("ID nhóm", gid));
         String role = g.optString("bot_role", "");
         String botOwnerTxt;
-        if ("owner".equals(role)) botOwnerTxt = "🥇 Trưởng nhóm (key vàng) — bot kick được";
-        else if ("deputy".equals(role)) botOwnerTxt = "🥈 Phó nhóm (key bạc) — bot kick được";
+        if ("owner".equals(role)) botOwnerTxt = "🥇 Trưởng nhóm (key vàng)";
+        else if ("deputy".equals(role)) botOwnerTxt = "🥈 Phó nhóm (key bạc)";
         else if ("member".equals(role)) botOwnerTxt = "👤 Thành viên thường — không có quyền quản trị";
         else botOwnerTxt = "- (chưa xác định)";
         contentArea.addView(detailRow("Quyền bot trong nhóm", botOwnerTxt));
@@ -1053,6 +1182,69 @@ public class MainActivity extends Activity {
                 () -> doUnlinkToken(true, val, status, linkedBox, unlinkedBox, tokenInput)));
 
         loadTokenStatus(val, status, linkedBox, unlinkedBox, tokenInput);
+
+        if ("admin".equals(currentRole)) {
+            contentArea.addView(sectionTitle("MÃ MỜI (CHỈ ADMIN THẤY)"));
+            LinearLayout inviteBox = new LinearLayout(this);
+            inviteBox.setOrientation(LinearLayout.VERTICAL);
+            inviteBox.setPadding(24, 0, 24, 24);
+            Button createInviteBtn = actionButton("➕ Tạo mã mời mới", null);
+            inviteBox.addView(createInviteBtn);
+            TextView inviteList = new TextView(this);
+            inviteList.setTextColor(SUB);
+            inviteList.setTextSize(12);
+            inviteList.setText("Đang tải...");
+            inviteBox.addView(inviteList);
+            contentArea.addView(inviteBox);
+            createInviteBtn.setOnClickListener(v -> createInvite(inviteList));
+            loadInvites(inviteList);
+        }
+    }
+
+    private void createInvite(TextView inviteList) {
+        io.execute(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("action", "create_invite");
+                JSONObject res = httpJson("POST", "/auth.php", body, sessionId);
+                if (res != null && res.optBoolean("ok", false)) {
+                    String code = res.optString("code", "");
+                    ui.post(() -> {
+                        new android.app.AlertDialog.Builder(this)
+                                .setTitle("✅ Mã mời mới")
+                                .setMessage(code + "\n\nĐưa mã này cho người bạn muốn mời — dùng được 1 lần.")
+                                .setPositiveButton("OK", null).show();
+                        loadInvites(inviteList);
+                    });
+                }
+            } catch (Exception ignored) {}
+        });
+    }
+
+    private void loadInvites(TextView inviteList) {
+        io.execute(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("action", "list_invites");
+                JSONObject res = httpJson("POST", "/auth.php", body, sessionId);
+                JSONArray invites = res != null ? res.optJSONArray("invites") : null;
+                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm dd/MM", Locale.getDefault());
+                StringBuilder sb = new StringBuilder();
+                if (invites == null || invites.length() == 0) {
+                    sb.append("Chưa có mã mời nào.");
+                } else {
+                    for (int i = 0; i < invites.length(); i++) {
+                        JSONObject iv = invites.optJSONObject(i);
+                        if (iv == null) continue;
+                        String usedBy = iv.optString("used_by", "");
+                        String status = usedBy.isEmpty() || "null".equals(usedBy) ? "⏳ Chưa dùng" : ("✅ Đã dùng bởi " + usedBy);
+                        sb.append(iv.optString("code")).append(" · ").append(status)
+                          .append(" · ").append(sdf.format(new Date(iv.optLong("created_at", 0) * 1000L))).append("\n");
+                    }
+                }
+                ui.post(() -> inviteList.setText(sb.toString().trim()));
+            } catch (Exception ignored) {}
+        });
     }
 
     private void doUnlinkToken(boolean silent, TextView val, TextView status, LinearLayout linkedBox, LinearLayout unlinkedBox, EditText tokenInput) {
@@ -1198,7 +1390,7 @@ public class MainActivity extends Activity {
         textCol.addView(t); textCol.addView(m);
         row.addView(textCol);
 
-        if (onClick != null) row.setOnClickListener(v -> onClick.run());
+        if (onClick != null) { row.setOnClickListener(v -> onClick.run()); applyPressFeedback(row); }
         return row;
     }
 
@@ -1238,7 +1430,25 @@ public class MainActivity extends Activity {
         lp.bottomMargin = 12;
         b.setLayoutParams(lp);
         b.setOnClickListener(v -> onClick.run());
+        applyPressFeedback(b);
         return b;
+    }
+
+    /** Nền nút vẽ tay (roundedBg) không có ripple mặc định như Button hệ
+     * thống -> tự thêm hiệu ứng mờ nhẹ khi nhấn giữ cho có phản hồi chạm. */
+    private void applyPressFeedback(View v) {
+        v.setOnTouchListener((view, event) -> {
+            switch (event.getAction()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    view.setAlpha(0.6f);
+                    break;
+                case android.view.MotionEvent.ACTION_UP:
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    view.setAlpha(1.0f);
+                    break;
+            }
+            return false; // vẫn cho onClick chạy bình thường
+        });
     }
 
     private LinearLayout detailRow(String k, String v) {
@@ -1322,7 +1532,7 @@ public class MainActivity extends Activity {
                 statusDot.setTextColor(online ? OK : BAD);
                 statusText.setText(online ? " Online" : " Offline");
                 String botName = res.optString("bot_name", "");
-                if (botTitleView != null && !botName.isEmpty()) botTitleView.setText("🤖 " + botName);
+                if (botTitleView != null && !botName.isEmpty()) botTitleView.setText(botName);
                 if (uptimeVal != null) {
                     int s = res.optInt("uptime_sec", 0);
                     uptimeVal.setText(online ? (s/3600) + "h " + ((s%3600)/60) + "m" : "-");
@@ -1354,30 +1564,6 @@ public class MainActivity extends Activity {
                     softwareVerVal.setText(sv.isEmpty() ? "-" : ("Python " + sv));
                 }
                 if (startedAtVal != null) startedAtVal.setText(fmtTime(res.optLong("start_time", 0)));
-            });
-        });
-    }
-
-    private void refreshCmdLog() {
-        io.execute(() -> {
-            JSONObject wrapped = httpJsonArrayAsObject("/commands.php?pending=0");
-            ui.post(() -> {
-                if (cmdLogView == null) return;
-                if (wrapped != null && wrapped.optBoolean("_linked_false", false)) {
-                    cmdLogView.setText(NOT_LINKED_MSG); return;
-                }
-                JSONArray arr = wrapped == null ? null : wrapped.optJSONArray("_arr");
-                if (arr == null || arr.length() == 0) { cmdLogView.setText("Chưa có gì."); return; }
-                StringBuilder sb = new StringBuilder();
-                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-                for (int i = 0; i < Math.min(arr.length(), 20); i++) {
-                    JSONObject c = arr.optJSONObject(i);
-                    if (c == null) continue;
-                    sb.append(c.optString("action")).append(" · ")
-                      .append(sdf.format(new Date(c.optLong("created_at", 0) * 1000L)))
-                      .append(" · ").append(c.optString("status")).append("\n");
-                }
-                cmdLogView.setText(sb.toString());
             });
         });
     }
