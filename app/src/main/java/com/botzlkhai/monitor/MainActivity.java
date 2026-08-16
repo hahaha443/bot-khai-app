@@ -204,8 +204,13 @@ public class MainActivity extends Activity {
         loginBtn.setOnClickListener(v -> {
             String u = user.getText().toString().trim();
             String p = pass.getText().toString();
-            if (u.isEmpty() || p.isEmpty()) { err.setText("Nhập đủ tài khoản và mật khẩu."); return; }
-            doLogin(u, p, err);
+            if (u.isEmpty() || p.isEmpty()) { err.setTextColor(BAD); err.setText("Nhập đủ tài khoản và mật khẩu."); return; }
+            // Phản hồi ngay lập tức khi bấm — trước đây bấm xong không thấy gì
+            // đổi cho tới khi request xong (hoặc treo), nhìn như nút không hoạt động.
+            err.setTextColor(SUB);
+            err.setText("Đang đăng nhập...");
+            loginBtn.setEnabled(false);
+            doLogin(u, p, err, loginBtn);
         });
         applyPressFeedback(loginBtn);
         loginBox.addView(loginBtn);
@@ -240,8 +245,11 @@ public class MainActivity extends Activity {
             String u = regUser.getText().toString().trim();
             String p = regPass.getText().toString();
             String inv = regInvite.getText().toString().trim();
-            if (u.isEmpty() || p.isEmpty() || inv.isEmpty()) { err.setText("Điền đủ tài khoản, mật khẩu và mã mời."); return; }
-            doRegister(u, p, inv, err);
+            if (u.isEmpty() || p.isEmpty() || inv.isEmpty()) { err.setTextColor(BAD); err.setText("Điền đủ tài khoản, mật khẩu và mã mời."); return; }
+            err.setTextColor(SUB);
+            err.setText("Đang đăng ký...");
+            registerBtn.setEnabled(false);
+            doRegister(u, p, inv, err, registerBtn);
         });
         applyPressFeedback(registerBtn);
         registerBox.addView(registerBtn);
@@ -286,7 +294,7 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void doLogin(String username, String password, TextView err) {
+    private void doLogin(String username, String password, TextView err, Button btn) {
         io.execute(() -> {
             try {
                 JSONObject body = new JSONObject();
@@ -301,15 +309,15 @@ public class MainActivity extends Activity {
                     ui.post(this::showMain);
                 } else {
                     String msg = res != null ? res.optString("message", "Sai tài khoản hoặc mật khẩu.") : "Sai tài khoản hoặc mật khẩu.";
-                    ui.post(() -> err.setText(msg));
+                    ui.post(() -> { btn.setEnabled(true); err.setTextColor(BAD); err.setText(msg); });
                 }
             } catch (Exception e) {
-                ui.post(() -> err.setText("Lỗi kết nối server."));
+                ui.post(() -> { btn.setEnabled(true); err.setTextColor(BAD); err.setText("Lỗi kết nối server."); });
             }
         });
     }
 
-    private void doRegister(String username, String password, String invite, TextView err) {
+    private void doRegister(String username, String password, String invite, TextView err, Button btn) {
         io.execute(() -> {
             try {
                 JSONObject body = new JSONObject();
@@ -325,10 +333,10 @@ public class MainActivity extends Activity {
                     ui.post(this::showMain);
                 } else {
                     String msg = res != null ? res.optString("message", "Đăng ký thất bại.") : "Đăng ký thất bại.";
-                    ui.post(() -> err.setText(msg));
+                    ui.post(() -> { btn.setEnabled(true); err.setTextColor(BAD); err.setText(msg); });
                 }
             } catch (Exception e) {
-                ui.post(() -> err.setText("Lỗi kết nối server."));
+                ui.post(() -> { btn.setEnabled(true); err.setTextColor(BAD); err.setText("Lỗi kết nối server."); });
             }
         });
     }
