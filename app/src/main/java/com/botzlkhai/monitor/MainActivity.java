@@ -1225,6 +1225,46 @@ public class MainActivity extends Activity {
 
         loadTokenStatus(val, status, linkedBox, unlinkedBox, tokenInput);
 
+        contentArea.addView(sectionTitle("ĐỔI MẬT KHẨU"));
+        LinearLayout cpBox = new LinearLayout(this);
+        cpBox.setOrientation(LinearLayout.VERTICAL);
+        cpBox.setPadding(28, 24, 28, 28);
+        cpBox.setBackground(roundedBg(CARD, 16));
+        LinearLayout.LayoutParams cpOuterLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cpOuterLp.leftMargin = 24; cpOuterLp.rightMargin = 24; cpOuterLp.bottomMargin = 8;
+        cpBox.setLayoutParams(cpOuterLp);
+
+        EditText cpOld = new EditText(this);
+        cpOld.setHint("Mật khẩu cũ");
+        cpOld.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        styleInput(cpOld);
+        EditText cpNew = new EditText(this);
+        cpNew.setHint("Mật khẩu mới");
+        cpNew.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        styleInput(cpNew);
+        EditText cpConfirm = new EditText(this);
+        cpConfirm.setHint("Nhập lại mật khẩu mới");
+        cpConfirm.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        styleInput(cpConfirm);
+        TextView cpErr = new TextView(this);
+        cpErr.setTextColor(BAD); cpErr.setTextSize(12); cpErr.setPadding(0, 0, 0, 12);
+        Button cpBtn = actionButton("🔒 Đổi mật khẩu", null);
+
+        cpBox.addView(cpOld); cpBox.addView(cpNew); cpBox.addView(cpConfirm); cpBox.addView(cpErr); cpBox.addView(cpBtn);
+        contentArea.addView(cpBox);
+
+        cpBtn.setOnClickListener(v -> {
+            String oldP = cpOld.getText().toString();
+            String newP = cpNew.getText().toString();
+            String confirmP = cpConfirm.getText().toString();
+            if (oldP.isEmpty() || newP.isEmpty() || confirmP.isEmpty()) { cpErr.setText("Điền đủ 3 ô."); return; }
+            if (!newP.equals(confirmP)) { cpErr.setText("Mật khẩu mới nhập lại không khớp."); return; }
+            if (newP.length() < 4) { cpErr.setText("Mật khẩu mới tối thiểu 4 ký tự."); return; }
+            cpErr.setText("");
+            changePassword(oldP, newP, confirmP, cpErr, cpOld, cpNew, cpConfirm);
+        });
+
         if ("admin".equals(currentRole)) {
             contentArea.addView(sectionTitle("MÃ MỜI (CHỈ ADMIN THẤY)"));
             LinearLayout inviteBox = new LinearLayout(this);
@@ -1237,17 +1277,23 @@ public class MainActivity extends Activity {
             inviteBox.setLayoutParams(inviteOuterLp);
             Button createInviteBtn = actionButton("➕ Tạo mã mời mới", null);
             inviteBox.addView(createInviteBtn);
-            TextView inviteList = new TextView(this);
-            inviteList.setTextColor(SUB);
-            inviteList.setTextSize(12);
-            inviteList.setLineSpacing(6, 1f);
-            inviteList.setText("Đang tải...");
+            LinearLayout inviteList = new LinearLayout(this);
+            inviteList.setOrientation(LinearLayout.VERTICAL);
+            TextView inviteLoading = new TextView(this);
+            inviteLoading.setTextColor(SUB); inviteLoading.setTextSize(12); inviteLoading.setText("Đang tải...");
+            inviteList.addView(inviteLoading);
             inviteBox.addView(inviteList);
             contentArea.addView(inviteBox);
             createInviteBtn.setOnClickListener(v -> createInvite(inviteList));
             loadInvites(inviteList);
 
             contentArea.addView(sectionTitle("QUẢN LÝ TÀI KHOẢN"));
+            Button createAccBtn = actionButton("➕ Tạo tài khoản", null);
+            LinearLayout.LayoutParams createAccLp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            createAccLp.leftMargin = 24; createAccLp.rightMargin = 24; createAccLp.bottomMargin = 10;
+            createAccBtn.setLayoutParams(createAccLp);
+            contentArea.addView(createAccBtn);
             LinearLayout accountsBox = new LinearLayout(this);
             accountsBox.setOrientation(LinearLayout.VERTICAL);
             LinearLayout.LayoutParams accOuterLp = new LinearLayout.LayoutParams(
@@ -1255,8 +1301,196 @@ public class MainActivity extends Activity {
             accOuterLp.leftMargin = 24; accOuterLp.rightMargin = 24; accOuterLp.bottomMargin = 24;
             accountsBox.setLayoutParams(accOuterLp);
             contentArea.addView(accountsBox);
+            createAccBtn.setOnClickListener(v -> openCreateAccountDialog(accountsBox));
             loadAccounts(accountsBox);
         }
+    }
+
+    private static final String[][] ALL_COMMANDS = {
+        {"refresh_friends","Làm mới danh sách bạn bè"}, {"reload_modules","Tải lại module"},
+        {"toggle_dm","Bật/tắt nhắn riêng"}, {"toggle_quiet","Bật/tắt chế độ im lặng"},
+        {"toggle_antilink","Chống link (nhóm)"}, {"toggle_react","Tự react (nhóm)"},
+        {"toggle_welcome","Chào thành viên mới (nhóm)"}, {"refresh_friend_status","Làm mới trạng thái bạn bè"},
+        {"send_group_message","Gửi tin nhắn nhóm"}, {"set_permission","Đổi quyền bạn bè"},
+        {"toggle_user_block","Khoá/mở chặn user"}, {"refresh_group_info","Làm mới thông tin nhóm"},
+        {"unlink","Huỷ liên kết token"},
+    };
+
+    private void openCreateAccountDialog(LinearLayout box) {
+        openAccountDialog(null, box);
+    }
+
+    /** account == null -> tạo mới; account != null -> sửa (quyền + giới hạn lệnh + đổi mật khẩu). */
+    private void openAccountDialog(JSONObject account, LinearLayout box) {
+        boolean isEdit = account != null;
+        String username = isEdit ? account.optString("username", "") : "";
+        java.util.Set<String> allowedSet = new java.util.HashSet<>();
+        if (isEdit) {
+            JSONArray allowed = account.optJSONArray("allowed_commands");
+            if (allowed != null) for (int i = 0; i < allowed.length(); i++) allowedSet.add(allowed.optString(i));
+        }
+
+        LinearLayout dlgRoot = new LinearLayout(this);
+        dlgRoot.setOrientation(LinearLayout.VERTICAL);
+        dlgRoot.setPadding(40, 20, 40, 0);
+
+        EditText userInput = new EditText(this);
+        if (isEdit) {
+            userInput.setText(username);
+            userInput.setEnabled(false); // không đổi được username, khớp đúng những gì backend hỗ trợ
+        } else {
+            userInput.setHint("Username");
+        }
+        styleInput(userInput);
+        dlgRoot.addView(userInput);
+
+        EditText passInput = new EditText(this);
+        passInput.setHint(isEdit ? "Mật khẩu mới (để trống = giữ nguyên)" : "Mật khẩu");
+        passInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        styleInput(passInput);
+        dlgRoot.addView(passInput);
+
+        TextView cmdLabel = new TextView(this);
+        cmdLabel.setText("Giới hạn lệnh (không tick gì = không giới hạn)");
+        cmdLabel.setTextColor(SUB); cmdLabel.setTextSize(11); cmdLabel.setPadding(0, 4, 0, 6);
+        dlgRoot.addView(cmdLabel);
+
+        java.util.List<android.widget.CheckBox> checks = new java.util.ArrayList<>();
+        for (String[] cmd : ALL_COMMANDS) {
+            android.widget.CheckBox cb = new android.widget.CheckBox(this);
+            cb.setText(cmd[1]);
+            cb.setTag(cmd[0]);
+            cb.setTextColor(TXT);
+            cb.setTextSize(12.5f);
+            cb.setChecked(allowedSet.contains(cmd[0]));
+            checks.add(cb);
+            dlgRoot.addView(cb);
+        }
+
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.addView(dlgRoot);
+
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this)
+                .setTitle(isEdit ? "Sửa tài khoản: " + username : "Tạo tài khoản mới")
+                .setView(scroll)
+                .setNegativeButton("Đóng", null)
+                .setPositiveButton("Lưu", null); // gắn listener riêng bên dưới để tự kiểm tra trước khi đóng dialog
+        if (isEdit) {
+            builder.setNeutralButton("Xoá", null);
+        }
+        android.app.AlertDialog dialog = builder.show();
+
+        dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            java.util.List<String> selected = new java.util.ArrayList<>();
+            for (android.widget.CheckBox cb : checks) if (cb.isChecked()) selected.add((String) cb.getTag());
+            String pass = passInput.getText().toString();
+            if (isEdit) {
+                saveAccountEdit(username, pass, selected, box, dialog);
+            } else {
+                String newUser = userInput.getText().toString().trim();
+                if (newUser.isEmpty() || pass.isEmpty()) {
+                    android.widget.Toast.makeText(this, "Cần nhập username và mật khẩu.", android.widget.Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                createAccount(newUser, pass, selected, box, dialog);
+            }
+        });
+        if (isEdit) {
+            dialog.getButton(android.app.AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v ->
+                showConfirmDialog("Xoá HẲN tài khoản \"" + username + "\"? Không thể hoàn tác.", () -> {
+                    dialog.dismiss();
+                    deleteAccount(username, box);
+                }));
+        }
+    }
+
+    private void createAccount(String username, String password, java.util.List<String> allowedCommands,
+                                LinearLayout box, android.app.AlertDialog dialog) {
+        io.execute(() -> {
+            JSONObject res = null;
+            try {
+                JSONObject body = new JSONObject();
+                body.put("action", "admin_create_account");
+                body.put("username", username);
+                body.put("password", password);
+                body.put("allowed_commands", new JSONArray(allowedCommands));
+                res = httpJson("POST", "/auth.php", body, sessionId);
+            } catch (Exception ignored) {}
+            final JSONObject r = res;
+            ui.post(() -> {
+                if (r != null && r.optBoolean("ok", false)) {
+                    dialog.dismiss();
+                    loadAccounts(box);
+                } else {
+                    android.widget.Toast.makeText(this, r != null ? r.optString("message", "Tạo thất bại.") : "Lỗi kết nối.", android.widget.Toast.LENGTH_LONG).show();
+                }
+            });
+        });
+    }
+
+    private void saveAccountEdit(String username, String newPassword, java.util.List<String> allowedCommands,
+                                  LinearLayout box, android.app.AlertDialog dialog) {
+        io.execute(() -> {
+            JSONObject res = null;
+            try {
+                JSONObject body = new JSONObject();
+                body.put("action", "admin_update_account");
+                body.put("username", username);
+                body.put("allowed_commands", new JSONArray(allowedCommands));
+                if (!newPassword.isEmpty()) body.put("new_password", newPassword);
+                res = httpJson("POST", "/auth.php", body, sessionId);
+            } catch (Exception ignored) {}
+            final JSONObject r = res;
+            ui.post(() -> {
+                if (r != null && r.optBoolean("ok", false)) {
+                    dialog.dismiss();
+                    loadAccounts(box);
+                } else {
+                    android.widget.Toast.makeText(this, r != null ? r.optString("message", "Lưu thất bại.") : "Lỗi kết nối.", android.widget.Toast.LENGTH_LONG).show();
+                }
+            });
+        });
+    }
+
+    private void deleteAccount(String username, LinearLayout box) {
+        io.execute(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("action", "admin_delete_account");
+                body.put("username", username);
+                httpJson("POST", "/auth.php", body, sessionId);
+            } catch (Exception ignored) {}
+            ui.post(() -> loadAccounts(box));
+        });
+    }
+
+    private void showAccountHistory(String username) {
+        io.execute(() -> {
+            JSONArray lines = null;
+            try {
+                JSONObject wrapped = httpJsonArrayAsObject("/log.php?actor=" + java.net.URLEncoder.encode(username, "UTF-8"));
+                if (wrapped != null) lines = wrapped.optJSONArray("_arr");
+            } catch (Exception ignored) {}
+            final JSONArray finalLines = lines;
+            ui.post(() -> {
+                StringBuilder sb = new StringBuilder();
+                if (finalLines == null || finalLines.length() == 0) {
+                    sb.append("Chưa có hoạt động nào.");
+                } else {
+                    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm dd/MM", Locale.getDefault());
+                    for (int i = 0; i < finalLines.length(); i++) {
+                        JSONObject l = finalLines.optJSONObject(i);
+                        if (l == null) continue;
+                        sb.append("[").append(sdf.format(new Date(l.optLong("t", 0) * 1000L))).append("] ")
+                          .append(l.optString("msg", "")).append("\n");
+                    }
+                }
+                new android.app.AlertDialog.Builder(this)
+                        .setTitle("Lịch sử hoạt động: " + username)
+                        .setMessage(sb.toString().trim())
+                        .setPositiveButton("Đóng", null).show();
+            });
+        });
     }
 
     /** Danh sách toàn bộ tài khoản (chỉ admin thấy) — bật/tắt (khoá) quyền
@@ -1318,6 +1552,8 @@ public class MainActivity extends Activity {
                     info.addView(subT);
                     row.addView(info);
 
+                    LinearLayout btnRow = new LinearLayout(this);
+                    btnRow.setOrientation(LinearLayout.HORIZONTAL);
                     if (!"admin".equals(role)) {
                         Button toggleBtn = new Button(this);
                         toggleBtn.setText(disabled ? "Mở khoá" : "Khoá");
@@ -1325,13 +1561,44 @@ public class MainActivity extends Activity {
                         toggleBtn.setBackground(roundedBg(disabled ? OK : BAD, 10));
                         toggleBtn.setMinWidth(0);
                         toggleBtn.setMinHeight(0);
-                        toggleBtn.setPadding(24, 10, 24, 10);
-                        toggleBtn.setTextSize(12);
+                        toggleBtn.setPadding(20, 10, 20, 10);
+                        toggleBtn.setTextSize(11);
                         toggleBtn.setElevation(0);
+                        LinearLayout.LayoutParams tblp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                        tblp.rightMargin = 6;
+                        toggleBtn.setLayoutParams(tblp);
                         applyPressFeedback(toggleBtn);
                         toggleBtn.setOnClickListener(v -> toggleAccount(uname, box));
-                        row.addView(toggleBtn);
+                        btnRow.addView(toggleBtn);
                     }
+                    Button editBtn = new Button(this);
+                    editBtn.setText("Sửa");
+                    editBtn.setTextColor(TXT);
+                    editBtn.setBackground(roundedBg(BG, 10));
+                    editBtn.setMinWidth(0); editBtn.setMinHeight(0);
+                    editBtn.setPadding(20, 10, 20, 10);
+                    editBtn.setTextSize(11);
+                    editBtn.setElevation(0);
+                    LinearLayout.LayoutParams eblp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    eblp.rightMargin = 6;
+                    editBtn.setLayoutParams(eblp);
+                    applyPressFeedback(editBtn);
+                    editBtn.setOnClickListener(v -> openAccountDialog(a, box));
+                    btnRow.addView(editBtn);
+
+                    Button histBtn = new Button(this);
+                    histBtn.setText("Lịch sử");
+                    histBtn.setTextColor(TXT);
+                    histBtn.setBackground(roundedBg(BG, 10));
+                    histBtn.setMinWidth(0); histBtn.setMinHeight(0);
+                    histBtn.setPadding(20, 10, 20, 10);
+                    histBtn.setTextSize(11);
+                    histBtn.setElevation(0);
+                    applyPressFeedback(histBtn);
+                    histBtn.setOnClickListener(v -> showAccountHistory(uname));
+                    btnRow.addView(histBtn);
+
+                    row.addView(btnRow);
                     box.addView(row);
                 }
             });
@@ -1350,7 +1617,7 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void createInvite(TextView inviteList) {
+    private void createInvite(LinearLayout inviteList) {
         io.execute(() -> {
             try {
                 JSONObject body = new JSONObject();
@@ -1361,8 +1628,9 @@ public class MainActivity extends Activity {
                     ui.post(() -> {
                         new android.app.AlertDialog.Builder(this)
                                 .setTitle("✅ Mã mời mới")
-                                .setMessage(code + "\n\nĐưa mã này cho người bạn muốn mời — dùng được 1 lần.")
-                                .setPositiveButton("OK", null).show();
+                                .setMessage(code + "\n\nĐưa mã này cho người bạn muốn mời — dùng được 1 lần, hết hạn sau 24 giờ.")
+                                .setPositiveButton("📋 Sao chép", (d, w) -> copyToClipboard("Mã mời", code))
+                                .setNegativeButton("OK", null).show();
                         loadInvites(inviteList);
                     });
                 }
@@ -1370,29 +1638,95 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void loadInvites(TextView inviteList) {
+    private void changePassword(String oldP, String newP, String confirmP, TextView err,
+                                 EditText fOld, EditText fNew, EditText fConfirm) {
         io.execute(() -> {
+            JSONObject res = null;
+            try {
+                JSONObject body = new JSONObject();
+                body.put("action", "change_password");
+                body.put("old_password", oldP);
+                body.put("new_password", newP);
+                body.put("new_password_confirm", confirmP);
+                res = httpJson("POST", "/auth.php", body, sessionId);
+            } catch (Exception ignored) {}
+            final JSONObject r = res;
+            ui.post(() -> {
+                if (r != null && r.optBoolean("ok", false)) {
+                    err.setTextColor(OK);
+                    err.setText("✅ Đổi mật khẩu thành công.");
+                    fOld.setText(""); fNew.setText(""); fConfirm.setText("");
+                } else {
+                    err.setTextColor(BAD);
+                    err.setText(r != null ? r.optString("message", "Đổi mật khẩu thất bại.") : "Lỗi kết nối server.");
+                }
+            });
+        });
+    }
+
+    private void copyToClipboard(String label, String text) {
+        android.content.ClipboardManager cm =
+                (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        cm.setPrimaryClip(android.content.ClipData.newPlainText(label, text));
+        android.widget.Toast.makeText(this, "Đã sao chép", android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    private void loadInvites(LinearLayout inviteList) {
+        io.execute(() -> {
+            JSONObject res = null;
             try {
                 JSONObject body = new JSONObject();
                 body.put("action", "list_invites");
-                JSONObject res = httpJson("POST", "/auth.php", body, sessionId);
-                JSONArray invites = res != null ? res.optJSONArray("invites") : null;
-                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm dd/MM", Locale.getDefault());
-                StringBuilder sb = new StringBuilder();
-                if (invites == null || invites.length() == 0) {
-                    sb.append("Chưa có mã mời nào.");
-                } else {
-                    for (int i = 0; i < invites.length(); i++) {
-                        JSONObject iv = invites.optJSONObject(i);
-                        if (iv == null) continue;
-                        String usedBy = iv.optString("used_by", "");
-                        String status = usedBy.isEmpty() || "null".equals(usedBy) ? "⏳ Chưa dùng" : ("✅ Đã dùng bởi " + usedBy);
-                        sb.append(iv.optString("code")).append(" · ").append(status)
-                          .append(" · ").append(sdf.format(new Date(iv.optLong("created_at", 0) * 1000L))).append("\n");
-                    }
-                }
-                ui.post(() -> inviteList.setText(sb.toString().trim()));
+                res = httpJson("POST", "/auth.php", body, sessionId);
             } catch (Exception ignored) {}
+            final JSONObject iv = res != null ? res.optJSONObject("invite") : null;
+            ui.post(() -> {
+                inviteList.removeAllViews();
+                if (iv == null) {
+                    TextView t = new TextView(this);
+                    t.setTextColor(SUB); t.setTextSize(12);
+                    t.setText("Chưa có mã mời nào đang hoạt động.");
+                    inviteList.addView(t);
+                    return;
+                }
+                String code = iv.optString("code", "");
+                String status = iv.optString("status", "active");
+                boolean graceExpired = "grace_expired".equals(status);
+                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm dd/MM", Locale.getDefault());
+
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setPadding(0, 10, 0, 0);
+
+                LinearLayout info = new LinearLayout(this);
+                info.setOrientation(LinearLayout.VERTICAL);
+                info.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+                TextView codeT = new TextView(this);
+                codeT.setText(code); codeT.setTextColor(TXT); codeT.setTextSize(15);
+                codeT.setTypeface(null, android.graphics.Typeface.BOLD);
+                info.addView(codeT);
+                TextView statusT = new TextView(this);
+                statusT.setTextColor(graceExpired ? BAD : OK);
+                statusT.setTextSize(11);
+                statusT.setText((graceExpired ? "⌛ Hết hạn" : "⏳ Chưa dùng") +
+                        " · hết hạn " + sdf.format(new Date(iv.optLong("expires_at", 0) * 1000L)));
+                info.addView(statusT);
+                row.addView(info);
+
+                Button copyBtn = new Button(this);
+                copyBtn.setText("📋 Sao chép");
+                copyBtn.setTextColor(Color.WHITE);
+                copyBtn.setBackground(roundedBg(ACC, 10));
+                copyBtn.setMinWidth(0); copyBtn.setMinHeight(0);
+                copyBtn.setPadding(20, 10, 20, 10);
+                copyBtn.setTextSize(12);
+                applyPressFeedback(copyBtn);
+                copyBtn.setOnClickListener(v -> copyToClipboard("Mã mời", code)); // vẫn bấm được trong lúc ân hạn
+                row.addView(copyBtn);
+
+                inviteList.addView(row);
+            });
         });
     }
 
