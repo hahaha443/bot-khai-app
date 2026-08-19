@@ -426,8 +426,15 @@ public class MainActivity extends Activity {
         LinearLayout nav = new LinearLayout(this);
         nav.setOrientation(LinearLayout.HORIZONTAL);
         nav.setBackgroundColor(CARD);
-        String[] tabs = {"📊 Dashboard","👥 Nhóm","🧑‍🤝‍🧑 Bạn bè","⚙️ Lệnh","🎮 Điều khiển","🔑 Token","📝 Log"};
-        String[] keys = {"dashboard","groups","friends","commands","control","settings","log"};
+        String[] tabs;
+        String[] keys;
+        if ("admin".equals(currentRole)) {
+            tabs = new String[]{"📊 Dashboard","👥 Nhóm","🧑‍🤝‍🧑 Bạn bè","⚙️ Lệnh","🎮 Điều khiển","🔑 Token","🧑‍💼 Quản lý TK","📝 Log"};
+            keys = new String[]{"dashboard","groups","friends","commands","control","settings","accounts","log"};
+        } else {
+            tabs = new String[]{"📊 Dashboard","👥 Nhóm","🧑‍🤝‍🧑 Bạn bè","⚙️ Lệnh","🎮 Điều khiển","🔑 Token","📝 Log"};
+            keys = new String[]{"dashboard","groups","friends","commands","control","settings","log"};
+        }
         for (int i = 0; i < tabs.length; i++) {
             Button b = new Button(this);
             b.setText(tabs[i]);
@@ -470,6 +477,7 @@ public class MainActivity extends Activity {
             case "commands": buildCommandsTab(); break;
             case "control": buildControlTab(); break;
             case "settings": buildSettingsTab(); break;
+            case "accounts": buildAccountsTab(); break;
             case "log": buildLogTab(); break;
         }
     }
@@ -1079,6 +1087,31 @@ public class MainActivity extends Activity {
     }
 
     /** Popup xác nhận tự vẽ đúng theme (thay AlertDialog mặc định của hệ thống — xấu, không ăn theo dark/light). */
+    /** Dialog nền tối custom dùng chung cho mọi popup trong app (KHÔNG dùng
+     * AlertDialog mặc định trắng/xám) — cùng 1 pattern với showConfirmDialog.
+     * Trả về Dialog CHƯA show, để nơi gọi tự thêm nội dung/nút rồi show(). */
+    private android.app.Dialog customDialog(View content) {
+        android.app.Dialog dialog = new android.app.Dialog(this);
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackground(roundedBg(CARD, 16));
+        box.setPadding(40, 36, 40, 32);
+        box.addView(content);
+
+        dialog.setContentView(box);
+        android.view.Window w = dialog.getWindow();
+        if (w != null) {
+            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            android.view.WindowManager.LayoutParams lp = new android.view.WindowManager.LayoutParams();
+            lp.copyFrom(w.getAttributes());
+            lp.width = (int) (getResources().getDisplayMetrics().widthPixels * 0.9);
+            w.setAttributes(lp);
+        }
+        return dialog;
+    }
+
     private void showConfirmDialog(String message, Runnable onConfirm) {
         android.app.Dialog dialog = new android.app.Dialog(this);
         dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
@@ -1225,45 +1258,9 @@ public class MainActivity extends Activity {
 
         loadTokenStatus(val, status, linkedBox, unlinkedBox, tokenInput);
 
-        contentArea.addView(sectionTitle("ĐỔI MẬT KHẨU"));
-        LinearLayout cpBox = new LinearLayout(this);
-        cpBox.setOrientation(LinearLayout.VERTICAL);
-        cpBox.setPadding(28, 24, 28, 28);
-        cpBox.setBackground(roundedBg(CARD, 16));
-        LinearLayout.LayoutParams cpOuterLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        cpOuterLp.leftMargin = 24; cpOuterLp.rightMargin = 24; cpOuterLp.bottomMargin = 8;
-        cpBox.setLayoutParams(cpOuterLp);
-
-        EditText cpOld = new EditText(this);
-        cpOld.setHint("Mật khẩu cũ");
-        cpOld.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        styleInput(cpOld);
-        EditText cpNew = new EditText(this);
-        cpNew.setHint("Mật khẩu mới");
-        cpNew.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        styleInput(cpNew);
-        EditText cpConfirm = new EditText(this);
-        cpConfirm.setHint("Nhập lại mật khẩu mới");
-        cpConfirm.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        styleInput(cpConfirm);
-        TextView cpErr = new TextView(this);
-        cpErr.setTextColor(BAD); cpErr.setTextSize(12); cpErr.setPadding(0, 0, 0, 12);
-        Button cpBtn = actionButton("🔒 Đổi mật khẩu", null);
-
-        cpBox.addView(cpOld); cpBox.addView(cpNew); cpBox.addView(cpConfirm); cpBox.addView(cpErr); cpBox.addView(cpBtn);
-        contentArea.addView(cpBox);
-
-        cpBtn.setOnClickListener(v -> {
-            String oldP = cpOld.getText().toString();
-            String newP = cpNew.getText().toString();
-            String confirmP = cpConfirm.getText().toString();
-            if (oldP.isEmpty() || newP.isEmpty() || confirmP.isEmpty()) { cpErr.setText("Điền đủ 3 ô."); return; }
-            if (!newP.equals(confirmP)) { cpErr.setText("Mật khẩu mới nhập lại không khớp."); return; }
-            if (newP.length() < 4) { cpErr.setText("Mật khẩu mới tối thiểu 4 ký tự."); return; }
-            cpErr.setText("");
-            changePassword(oldP, newP, confirmP, cpErr, cpOld, cpNew, cpConfirm);
-        });
+        Button cpOpenBtn = actionButton("🔒 Đổi mật khẩu", null);
+        contentArea.addView(cpOpenBtn);
+        cpOpenBtn.setOnClickListener(v -> showChangePasswordDialog());
 
         if ("admin".equals(currentRole)) {
             contentArea.addView(sectionTitle("MÃ MỜI (CHỈ ADMIN THẤY)"));
@@ -1286,24 +1283,28 @@ public class MainActivity extends Activity {
             contentArea.addView(inviteBox);
             createInviteBtn.setOnClickListener(v -> createInvite(inviteList));
             loadInvites(inviteList);
-
-            contentArea.addView(sectionTitle("QUẢN LÝ TÀI KHOẢN"));
-            Button createAccBtn = actionButton("➕ Tạo tài khoản", null);
-            LinearLayout.LayoutParams createAccLp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            createAccLp.leftMargin = 24; createAccLp.rightMargin = 24; createAccLp.bottomMargin = 10;
-            createAccBtn.setLayoutParams(createAccLp);
-            contentArea.addView(createAccBtn);
-            LinearLayout accountsBox = new LinearLayout(this);
-            accountsBox.setOrientation(LinearLayout.VERTICAL);
-            LinearLayout.LayoutParams accOuterLp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            accOuterLp.leftMargin = 24; accOuterLp.rightMargin = 24; accOuterLp.bottomMargin = 24;
-            accountsBox.setLayoutParams(accOuterLp);
-            contentArea.addView(accountsBox);
-            createAccBtn.setOnClickListener(v -> openCreateAccountDialog(accountsBox));
-            loadAccounts(accountsBox);
         }
+    }
+
+    /** Tab riêng "Quản lý TK" — chỉ vào được nếu currentRole=="admin" (nút tab
+     * không hiện với account thường, xem showMain()). */
+    private void buildAccountsTab() {
+        contentArea.addView(sectionTitle("QUẢN LÝ TÀI KHOẢN"));
+        Button createAccBtn = actionButton("➕ Tạo tài khoản", null);
+        LinearLayout.LayoutParams createAccLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        createAccLp.leftMargin = 24; createAccLp.rightMargin = 24; createAccLp.bottomMargin = 10;
+        createAccBtn.setLayoutParams(createAccLp);
+        contentArea.addView(createAccBtn);
+        LinearLayout accountsBox = new LinearLayout(this);
+        accountsBox.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams accOuterLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        accOuterLp.leftMargin = 24; accOuterLp.rightMargin = 24; accOuterLp.bottomMargin = 24;
+        accountsBox.setLayoutParams(accOuterLp);
+        contentArea.addView(accountsBox);
+        createAccBtn.setOnClickListener(v -> openCreateAccountDialog(accountsBox));
+        loadAccounts(accountsBox);
     }
 
     private static final String[][] ALL_COMMANDS = {
@@ -1324,6 +1325,8 @@ public class MainActivity extends Activity {
     private void openAccountDialog(JSONObject account, LinearLayout box) {
         boolean isEdit = account != null;
         String username = isEdit ? account.optString("username", "") : "";
+        String role = isEdit ? account.optString("role", "member") : "member";
+        boolean showCommandLimits = !"admin".equals(role); // admin không cần giới hạn lệnh
         java.util.Set<String> allowedSet = new java.util.HashSet<>();
         if (isEdit) {
             JSONArray allowed = account.optJSONArray("allowed_commands");
@@ -1332,7 +1335,13 @@ public class MainActivity extends Activity {
 
         LinearLayout dlgRoot = new LinearLayout(this);
         dlgRoot.setOrientation(LinearLayout.VERTICAL);
-        dlgRoot.setPadding(40, 20, 40, 0);
+
+        TextView title = new TextView(this);
+        title.setText(isEdit ? "Sửa tài khoản: " + username : "Tạo tài khoản mới");
+        title.setTextColor(TXT); title.setTextSize(16);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setPadding(0, 0, 0, 14);
+        dlgRoot.addView(title);
 
         EditText userInput = new EditText(this);
         if (isEdit) {
@@ -1350,37 +1359,68 @@ public class MainActivity extends Activity {
         styleInput(passInput);
         dlgRoot.addView(passInput);
 
-        TextView cmdLabel = new TextView(this);
-        cmdLabel.setText("Giới hạn lệnh (không tick gì = không giới hạn)");
-        cmdLabel.setTextColor(SUB); cmdLabel.setTextSize(11); cmdLabel.setPadding(0, 4, 0, 6);
-        dlgRoot.addView(cmdLabel);
-
         java.util.List<android.widget.CheckBox> checks = new java.util.ArrayList<>();
-        for (String[] cmd : ALL_COMMANDS) {
-            android.widget.CheckBox cb = new android.widget.CheckBox(this);
-            cb.setText(cmd[1]);
-            cb.setTag(cmd[0]);
-            cb.setTextColor(TXT);
-            cb.setTextSize(12.5f);
-            cb.setChecked(allowedSet.contains(cmd[0]));
-            checks.add(cb);
-            dlgRoot.addView(cb);
+        if (showCommandLimits) {
+            TextView cmdLabel = new TextView(this);
+            cmdLabel.setText("Giới hạn lệnh (không tick gì = không giới hạn)");
+            cmdLabel.setTextColor(SUB); cmdLabel.setTextSize(11); cmdLabel.setPadding(0, 4, 0, 6);
+            dlgRoot.addView(cmdLabel);
+            for (String[] cmd : ALL_COMMANDS) {
+                android.widget.CheckBox cb = new android.widget.CheckBox(this);
+                cb.setText(cmd[1]);
+                cb.setTag(cmd[0]);
+                cb.setTextColor(TXT);
+                cb.setTextSize(12.5f);
+                cb.setChecked(allowedSet.contains(cmd[0]));
+                checks.add(cb);
+                dlgRoot.addView(cb);
+            }
         }
 
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        scroll.setLayoutParams(scrollLp);
+        scroll.getLayoutParams().height = (int) (getResources().getDisplayMetrics().heightPixels * 0.5);
         scroll.addView(dlgRoot);
 
-        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this)
-                .setTitle(isEdit ? "Sửa tài khoản: " + username : "Tạo tài khoản mới")
-                .setView(scroll)
-                .setNegativeButton("Đóng", null)
-                .setPositiveButton("Lưu", null); // gắn listener riêng bên dưới để tự kiểm tra trước khi đóng dialog
-        if (isEdit) {
-            builder.setNeutralButton("Xoá", null);
-        }
-        android.app.AlertDialog dialog = builder.show();
+        LinearLayout outer = new LinearLayout(this);
+        outer.setOrientation(LinearLayout.VERTICAL);
+        outer.addView(scroll);
 
-        dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+        LinearLayout btnRow = new LinearLayout(this);
+        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        btnRow.setPadding(0, 16, 0, 0);
+        Button saveBtn = new Button(this);
+        saveBtn.setText("Lưu");
+        saveBtn.setTextColor(Color.WHITE);
+        saveBtn.setBackground(roundedBg(ACC, 10));
+        LinearLayout.LayoutParams saveLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        saveLp.rightMargin = 6;
+        saveBtn.setLayoutParams(saveLp);
+        btnRow.addView(saveBtn);
+        Button closeBtn = new Button(this);
+        closeBtn.setText("Đóng");
+        closeBtn.setTextColor(TXT);
+        closeBtn.setBackground(roundedBg(BG, 10));
+        LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        closeLp.rightMargin = isEdit ? 6 : 0;
+        closeBtn.setLayoutParams(closeLp);
+        btnRow.addView(closeBtn);
+        Button delBtn = null;
+        if (isEdit) {
+            delBtn = new Button(this);
+            delBtn.setText("Xoá");
+            delBtn.setTextColor(Color.WHITE);
+            delBtn.setBackground(roundedBg(BAD, 10));
+            delBtn.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+            btnRow.addView(delBtn);
+        }
+        outer.addView(btnRow);
+
+        android.app.Dialog dialog = customDialog(outer);
+        closeBtn.setOnClickListener(v -> dialog.dismiss());
+        saveBtn.setOnClickListener(v -> {
             java.util.List<String> selected = new java.util.ArrayList<>();
             for (android.widget.CheckBox cb : checks) if (cb.isChecked()) selected.add((String) cb.getTag());
             String pass = passInput.getText().toString();
@@ -1395,17 +1435,18 @@ public class MainActivity extends Activity {
                 createAccount(newUser, pass, selected, box, dialog);
             }
         });
-        if (isEdit) {
-            dialog.getButton(android.app.AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v ->
+        if (delBtn != null) {
+            delBtn.setOnClickListener(v ->
                 showConfirmDialog("Xoá HẲN tài khoản \"" + username + "\"? Không thể hoàn tác.", () -> {
                     dialog.dismiss();
                     deleteAccount(username, box);
                 }));
         }
+        dialog.show();
     }
 
     private void createAccount(String username, String password, java.util.List<String> allowedCommands,
-                                LinearLayout box, android.app.AlertDialog dialog) {
+                                LinearLayout box, android.app.Dialog dialog) {
         io.execute(() -> {
             JSONObject res = null;
             try {
@@ -1429,7 +1470,7 @@ public class MainActivity extends Activity {
     }
 
     private void saveAccountEdit(String username, String newPassword, java.util.List<String> allowedCommands,
-                                  LinearLayout box, android.app.AlertDialog dialog) {
+                                  LinearLayout box, android.app.Dialog dialog) {
         io.execute(() -> {
             JSONObject res = null;
             try {
@@ -1473,22 +1514,61 @@ public class MainActivity extends Activity {
             } catch (Exception ignored) {}
             final JSONArray finalLines = lines;
             ui.post(() -> {
-                StringBuilder sb = new StringBuilder();
+                LinearLayout box = new LinearLayout(this);
+                box.setOrientation(LinearLayout.VERTICAL);
+
+                TextView title = new TextView(this);
+                title.setText("Lịch sử hoạt động: " + username);
+                title.setTextColor(TXT); title.setTextSize(16);
+                title.setTypeface(null, android.graphics.Typeface.BOLD);
+                title.setPadding(0, 0, 0, 14);
+                box.addView(title);
+
+                LinearLayout listBox = new LinearLayout(this);
+                listBox.setOrientation(LinearLayout.VERTICAL);
                 if (finalLines == null || finalLines.length() == 0) {
-                    sb.append("Chưa có hoạt động nào.");
+                    TextView empty = new TextView(this);
+                    empty.setText("Chưa có hoạt động nào.");
+                    empty.setTextColor(SUB); empty.setTextSize(12.5f);
+                    listBox.addView(empty);
                 } else {
                     SimpleDateFormat sdf = new SimpleDateFormat("HH:mm dd/MM", Locale.getDefault());
-                    for (int i = 0; i < finalLines.length(); i++) {
+                    for (int i = finalLines.length() - 1; i >= 0; i--) { // mới nhất lên trước
                         JSONObject l = finalLines.optJSONObject(i);
                         if (l == null) continue;
-                        sb.append("[").append(sdf.format(new Date(l.optLong("t", 0) * 1000L))).append("] ")
-                          .append(l.optString("msg", "")).append("\n");
+                        LinearLayout row = new LinearLayout(this);
+                        row.setOrientation(LinearLayout.VERTICAL);
+                        row.setPadding(0, 0, 0, 10);
+                        TextView msgT = new TextView(this);
+                        msgT.setText(l.optString("msg", ""));
+                        msgT.setTextColor(TXT); msgT.setTextSize(13);
+                        TextView timeT = new TextView(this);
+                        timeT.setText(sdf.format(new Date(l.optLong("t", 0) * 1000L)));
+                        timeT.setTextColor(SUB); timeT.setTextSize(11);
+                        row.addView(msgT); row.addView(timeT);
+                        listBox.addView(row);
                     }
                 }
-                new android.app.AlertDialog.Builder(this)
-                        .setTitle("Lịch sử hoạt động: " + username)
-                        .setMessage(sb.toString().trim())
-                        .setPositiveButton("Đóng", null).show();
+                android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+                scroll.getLayoutParams();
+                scroll.setLayoutParams(new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, (int) (getResources().getDisplayMetrics().heightPixels * 0.5)));
+                scroll.addView(listBox);
+                box.addView(scroll);
+
+                Button closeBtn = new Button(this);
+                closeBtn.setText("Đóng");
+                closeBtn.setTextColor(TXT);
+                closeBtn.setBackground(roundedBg(BG, 10));
+                LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                closeLp.topMargin = 16;
+                closeBtn.setLayoutParams(closeLp);
+                box.addView(closeBtn);
+
+                android.app.Dialog dialog = customDialog(box);
+                closeBtn.setOnClickListener(v -> dialog.dismiss());
+                dialog.show();
             });
         });
     }
@@ -1638,8 +1718,69 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void showChangePasswordDialog() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+
+        TextView title = new TextView(this);
+        title.setText("🔒 Đổi mật khẩu");
+        title.setTextColor(TXT); title.setTextSize(16);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setPadding(0, 0, 0, 16);
+        box.addView(title);
+
+        EditText cpOld = new EditText(this);
+        cpOld.setHint("Mật khẩu cũ");
+        cpOld.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        styleInput(cpOld);
+        EditText cpNew = new EditText(this);
+        cpNew.setHint("Mật khẩu mới");
+        cpNew.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        styleInput(cpNew);
+        EditText cpConfirm = new EditText(this);
+        cpConfirm.setHint("Nhập lại mật khẩu mới");
+        cpConfirm.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        styleInput(cpConfirm);
+        TextView cpErr = new TextView(this);
+        cpErr.setTextColor(BAD); cpErr.setTextSize(12); cpErr.setPadding(0, 0, 0, 8);
+
+        box.addView(cpOld); box.addView(cpNew); box.addView(cpConfirm); box.addView(cpErr);
+
+        LinearLayout btnRow = new LinearLayout(this);
+        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        Button confirmBtn = new Button(this);
+        confirmBtn.setText("Xác nhận");
+        confirmBtn.setTextColor(Color.WHITE);
+        confirmBtn.setBackground(roundedBg(ACC, 10));
+        LinearLayout.LayoutParams confLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        confLp.rightMargin = 8;
+        confirmBtn.setLayoutParams(confLp);
+        btnRow.addView(confirmBtn);
+        Button cancelBtn = new Button(this);
+        cancelBtn.setText("Huỷ");
+        cancelBtn.setTextColor(TXT);
+        cancelBtn.setBackground(roundedBg(BG, 10));
+        cancelBtn.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        btnRow.addView(cancelBtn);
+        box.addView(btnRow);
+
+        android.app.Dialog dialog = customDialog(box);
+        cancelBtn.setOnClickListener(v -> dialog.dismiss());
+        confirmBtn.setOnClickListener(v -> {
+            String oldP = cpOld.getText().toString();
+            String newP = cpNew.getText().toString();
+            String confirmP = cpConfirm.getText().toString();
+            if (oldP.isEmpty() || newP.isEmpty() || confirmP.isEmpty()) { cpErr.setText("Điền đủ 3 ô."); return; }
+            if (!newP.equals(confirmP)) { cpErr.setText("Mật khẩu mới nhập lại không khớp."); return; }
+            if (newP.length() < 4) { cpErr.setText("Mật khẩu mới tối thiểu 4 ký tự."); return; }
+            cpErr.setText("");
+            changePassword(oldP, newP, confirmP, cpErr, cpOld, cpNew, cpConfirm, dialog);
+        });
+        dialog.show();
+    }
+
     private void changePassword(String oldP, String newP, String confirmP, TextView err,
-                                 EditText fOld, EditText fNew, EditText fConfirm) {
+                                 EditText fOld, EditText fNew, EditText fConfirm, android.app.Dialog dialog) {
         io.execute(() -> {
             JSONObject res = null;
             try {
@@ -1653,11 +1794,9 @@ public class MainActivity extends Activity {
             final JSONObject r = res;
             ui.post(() -> {
                 if (r != null && r.optBoolean("ok", false)) {
-                    err.setTextColor(OK);
-                    err.setText("✅ Đổi mật khẩu thành công.");
-                    fOld.setText(""); fNew.setText(""); fConfirm.setText("");
+                    android.widget.Toast.makeText(this, "✅ Đổi mật khẩu thành công.", android.widget.Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
                 } else {
-                    err.setTextColor(BAD);
                     err.setText(r != null ? r.optString("message", "Đổi mật khẩu thất bại.") : "Lỗi kết nối server.");
                 }
             });
