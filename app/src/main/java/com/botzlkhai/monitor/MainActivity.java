@@ -134,7 +134,19 @@ public class MainActivity extends Activity {
             getWindow().getDecorView().setSystemUiVisibility(flags & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         }
 
-        if (sessionId != null) showMain(); else showLogin();
+        if (sessionId != null) {
+            // BUG THẬT: trước đây gọi showMain() ngay ở đây trong khi currentRole
+            // còn là mặc định "member" (fetchWhoAmI() chạy async, chưa kịp xong)
+            // -> tab bar dựng THIẾU tab admin dù tài khoản là admin thật. Giờ
+            // phải đợi biết đúng role rồi mới showMain().
+            io.execute(() -> {
+                JSONObject res = httpJson("GET", "/whoami.php", null, sessionId);
+                if (res != null) currentRole = res.optString("role", "member");
+                ui.post(this::showMain);
+            });
+        } else {
+            showLogin();
+        }
     }
 
     // ================= LOGIN =================
@@ -1314,7 +1326,7 @@ public class MainActivity extends Activity {
         {"toggle_welcome","Chào thành viên mới (nhóm)"}, {"refresh_friend_status","Làm mới trạng thái bạn bè"},
         {"send_group_message","Gửi tin nhắn nhóm"}, {"set_permission","Đổi quyền bạn bè"},
         {"toggle_user_block","Khoá/mở chặn user"}, {"refresh_group_info","Làm mới thông tin nhóm"},
-        {"unlink","Huỷ liên kết token"},
+        {"unlink","Huỷ liên kết token"}, {"stop_bot","⚠️ Dừng bot"}, {"start_bot","⚠️ Khởi động lại bot"},
     };
 
     private void openCreateAccountDialog(LinearLayout box) {
@@ -1352,6 +1364,15 @@ public class MainActivity extends Activity {
         }
         styleInput(userInput);
         dlgRoot.addView(userInput);
+
+        android.widget.CheckBox independentBotCb = isEdit ? null : new android.widget.CheckBox(this);
+        if (independentBotCb != null) {
+            independentBotCb.setText("Tạo bot độc lập (dữ liệu tách riêng hoàn toàn)");
+            independentBotCb.setTextColor(TXT);
+            independentBotCb.setTextSize(12.5f);
+            independentBotCb.setPadding(0, 0, 0, 8);
+            dlgRoot.addView(independentBotCb);
+        }
 
         EditText passInput = new EditText(this);
         passInput.setHint(isEdit ? "Mật khẩu mới (để trống = giữ nguyên)" : "Mật khẩu");
@@ -1432,7 +1453,7 @@ public class MainActivity extends Activity {
                     android.widget.Toast.makeText(this, "Cần nhập username và mật khẩu.", android.widget.Toast.LENGTH_SHORT).show();
                     return;
                 }
-                createAccount(newUser, pass, selected, box, dialog);
+                createAccount(newUser, pass, selected, independentBotCb != null && independentBotCb.isChecked(), box, dialog);
             }
         });
         if (delBtn != null) {
@@ -1446,7 +1467,7 @@ public class MainActivity extends Activity {
     }
 
     private void createAccount(String username, String password, java.util.List<String> allowedCommands,
-                                LinearLayout box, android.app.Dialog dialog) {
+                                boolean independentBot, LinearLayout box, android.app.Dialog dialog) {
         io.execute(() -> {
             JSONObject res = null;
             try {
@@ -1455,6 +1476,7 @@ public class MainActivity extends Activity {
                 body.put("username", username);
                 body.put("password", password);
                 body.put("allowed_commands", new JSONArray(allowedCommands));
+                body.put("new_independent_bot", independentBot);
                 res = httpJson("POST", "/auth.php", body, sessionId);
             } catch (Exception ignored) {}
             final JSONObject r = res;
