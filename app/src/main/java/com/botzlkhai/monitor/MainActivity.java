@@ -100,6 +100,7 @@ public class MainActivity extends Activity {
     private SharedPreferences prefs;
     private String sessionId;
     private String currentRole = "member";
+    private String myUsername = "";
     private java.util.Set<String> myAllowedCommands = new java.util.HashSet<>();
 
     private FrameLayout root;
@@ -144,6 +145,7 @@ public class MainActivity extends Activity {
                 JSONObject res = httpJson("GET", "/whoami.php", null, sessionId);
                 if (res != null) {
                     currentRole = res.optString("role", "member");
+                    myUsername = res.optString("username", "");
                     myAllowedCommands = jsonArrayToStringSet(res.optJSONArray("allowed_commands"));
                 }
                 ui.post(this::showMain);
@@ -310,6 +312,7 @@ public class MainActivity extends Activity {
             JSONObject res = httpJson("GET", "/whoami.php", null, sessionId);
             if (res != null) {
                 currentRole = res.optString("role", "member");
+                myUsername = res.optString("username", "");
                 myAllowedCommands = jsonArrayToStringSet(res.optJSONArray("allowed_commands"));
             }
         });
@@ -382,16 +385,9 @@ public class MainActivity extends Activity {
     private void showAccountLockedOverlay() {
         if (accountLockedDialog != null && accountLockedDialog.isShowing()) return;
 
-        android.app.Dialog dialog = new android.app.Dialog(this);
-        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
-        dialog.setCancelable(false);
-        dialog.setCanceledOnTouchOutside(false);
-
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setBackground(roundedBg(CARD, 16));
-        box.setPadding(48, 44, 48, 36);
-        box.setGravity(Gravity.CENTER);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setGravity(Gravity.CENTER);
 
         TextView icon = new TextView(this);
         icon.setText("🔒");
@@ -400,7 +396,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams iLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         iLp.bottomMargin = 14;
-        box.addView(icon, iLp);
+        content.addView(icon, iLp);
 
         TextView t = new TextView(this);
         t.setText("Tài khoản đã bị Admin khoá");
@@ -410,25 +406,22 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams tLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         tLp.bottomMargin = 24;
-        box.addView(t, tLp);
+        content.addView(t, tLp);
+
+        android.app.Dialog dialog = customDialog(content, 0.82f);
+        dialog.setCancelable(false);
+        dialog.setCanceledOnTouchOutside(false);
 
         Button logoutBtn = new Button(this);
         logoutBtn.setText("Đăng xuất");
         logoutBtn.setTextColor(Color.WHITE);
         logoutBtn.setBackground(roundedBg(BAD, 10));
         logoutBtn.setOnClickListener(v -> logout());
-        box.addView(logoutBtn, new LinearLayout.LayoutParams(
+        content.addView(logoutBtn, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        dialog.setContentView(box);
         android.view.Window w = dialog.getWindow();
-        if (w != null) {
-            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
-            w.setDimAmount(0.72f);
-            android.view.WindowManager.LayoutParams lp = w.getAttributes();
-            lp.width = (int) (getResources().getDisplayMetrics().widthPixels * 0.82);
-            w.setAttributes(lp);
-        }
+        if (w != null) w.setDimAmount(0.72f);
         accountLockedDialog = dialog;
         dialog.show();
     }
@@ -1056,13 +1049,8 @@ public class MainActivity extends Activity {
         if (desc != null && !desc.isEmpty()) body.append(desc).append("\n\n");
         body.append(hasCmd ? ("Cách dùng: gõ " + cmd + " trong Zalo.") : "Tính năng này chạy tự động, không cần gõ lệnh.");
 
-        android.app.Dialog dialog = new android.app.Dialog(this);
-        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
-
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setBackground(roundedBg(CARD, 16));
-        box.setPadding(48, 44, 48, 36);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
 
         TextView t = new TextView(this);
         t.setText(title);
@@ -1072,7 +1060,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams tLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         tLp.bottomMargin = 20;
-        box.addView(t, tLp);
+        content.addView(t, tLp);
 
         TextView d = new TextView(this);
         d.setText(body.toString());
@@ -1082,10 +1070,14 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams dLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         dLp.bottomMargin = 28;
-        box.addView(d, dLp);
+        content.addView(d, dLp);
 
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        content.addView(btnRow);
+
+        android.app.Dialog dialog = customDialog(content, 0.88f);
+
         if (hasCmd) {
             Button copyBtn = new Button(this);
             copyBtn.setText("📋 Copy lệnh");
@@ -1105,17 +1097,7 @@ public class MainActivity extends Activity {
         closeBtn.setLayoutParams(clLp);
         closeBtn.setOnClickListener(v -> dialog.dismiss());
         btnRow.addView(closeBtn);
-        box.addView(btnRow);
 
-        dialog.setContentView(box);
-        android.view.Window w = dialog.getWindow();
-        if (w != null) {
-            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
-            android.view.WindowManager.LayoutParams lp = new android.view.WindowManager.LayoutParams();
-            lp.copyFrom(w.getAttributes());
-            lp.width = (int) (getResources().getDisplayMetrics().widthPixels * 0.86);
-            w.setAttributes(lp);
-        }
         dialog.show();
     }
 
@@ -1179,7 +1161,15 @@ public class MainActivity extends Activity {
     /** Dialog nền tối custom dùng chung cho mọi popup trong app (KHÔNG dùng
      * AlertDialog mặc định trắng/xám) — cùng 1 pattern với showConfirmDialog.
      * Trả về Dialog CHƯA show, để nơi gọi tự thêm nội dung/nút rồi show(). */
+    /** Dialog chuẩn dùng chung toàn app: nền CARD bo góc 16dp, padding cố định,
+     * width tính theo % màn hình — mọi dialog/overlay (xác nhận, hướng dẫn lệnh,
+     * khoá tài khoản, sửa tài khoản...) đều phải đi qua đây để đồng bộ style,
+     * không tự dựng nền/dialog rời rạc mỗi chỗ 1 kiểu. */
     private android.app.Dialog customDialog(View content) {
+        return customDialog(content, 0.9f);
+    }
+
+    private android.app.Dialog customDialog(View content, float widthFactor) {
         android.app.Dialog dialog = new android.app.Dialog(this);
         dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
 
@@ -1195,20 +1185,15 @@ public class MainActivity extends Activity {
             w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
             android.view.WindowManager.LayoutParams lp = new android.view.WindowManager.LayoutParams();
             lp.copyFrom(w.getAttributes());
-            lp.width = (int) (getResources().getDisplayMetrics().widthPixels * 0.9);
+            lp.width = (int) (getResources().getDisplayMetrics().widthPixels * widthFactor);
             w.setAttributes(lp);
         }
         return dialog;
     }
 
     private void showConfirmDialog(String message, Runnable onConfirm) {
-        android.app.Dialog dialog = new android.app.Dialog(this);
-        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
-
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setBackground(roundedBg(CARD, 16));
-        box.setPadding(48, 44, 48, 36);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
 
         TextView t = new TextView(this);
         t.setText(message);
@@ -1218,10 +1203,14 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams tLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         tLp.bottomMargin = 28;
-        box.addView(t, tLp);
+        content.addView(t, tLp);
 
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        content.addView(btnRow);
+
+        android.app.Dialog dialog = customDialog(content, 0.88f);
+
         Button okBtn = new Button(this);
         okBtn.setText("Đồng ý");
         okBtn.setTextColor(Color.WHITE);
@@ -1240,17 +1229,7 @@ public class MainActivity extends Activity {
         cancelBtn.setLayoutParams(cLp);
         cancelBtn.setOnClickListener(v -> dialog.dismiss());
         btnRow.addView(cancelBtn);
-        box.addView(btnRow);
 
-        dialog.setContentView(box);
-        android.view.Window w = dialog.getWindow();
-        if (w != null) {
-            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
-            android.view.WindowManager.LayoutParams lp = new android.view.WindowManager.LayoutParams();
-            lp.copyFrom(w.getAttributes());
-            lp.width = (int) (getResources().getDisplayMetrics().widthPixels * 0.86);
-            w.setAttributes(lp);
-        }
         dialog.show();
     }
 
@@ -1394,6 +1373,118 @@ public class MainActivity extends Activity {
         contentArea.addView(accountsBox);
         createAccBtn.setOnClickListener(v -> openCreateAccountDialog(accountsBox));
         loadAccounts(accountsBox);
+
+        contentArea.addView(sectionTitle("BOT TÀI KHOẢN \"THƯỜNG\" — UPTIME"));
+        LinearLayout thuongBox = new LinearLayout(this);
+        thuongBox.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams thuongLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        thuongLp.leftMargin = 24; thuongLp.rightMargin = 24; thuongLp.bottomMargin = 24;
+        thuongBox.setLayoutParams(thuongLp);
+        contentArea.addView(thuongBox);
+        loadThuongBotsUptime(thuongBox);
+    }
+
+    private void loadThuongBotsUptime(LinearLayout box) {
+        box.removeAllViews();
+        TextView loading = new TextView(this);
+        loading.setText("Đang tải...");
+        loading.setTextColor(SUB); loading.setTextSize(12.5f);
+        box.addView(loading);
+        io.execute(() -> {
+            JSONObject body = new JSONObject();
+            try { body.put("action", "list_bots"); } catch (Exception ignored) {}
+            JSONObject listRes = httpJson("POST", "/auth.php", body, sessionId);
+            if (listRes == null || !listRes.optBoolean("ok", false)) {
+                ui.post(() -> { box.removeAllViews(); box.addView(emptyText("Không tải được danh sách bot.")); });
+                return;
+            }
+            JSONArray bots = listRes.optJSONArray("bots");
+            java.util.List<JSONObject> thuong = new java.util.ArrayList<>();
+            if (bots != null) {
+                for (int i = 0; i < bots.length(); i++) {
+                    JSONObject b = bots.optJSONObject(i);
+                    if (b != null && "thuong".equals(b.optString("zalo_account_type"))) thuong.add(b);
+                }
+            }
+            if (thuong.isEmpty()) {
+                ui.post(() -> { box.removeAllViews(); box.addView(emptyText("Chưa có bot tài khoản \"thường\" nào.")); });
+                return;
+            }
+            java.util.List<View> rows = new java.util.ArrayList<>();
+            for (JSONObject b : thuong) {
+                String botId = b.optString("bot_id", "");
+                java.util.Map<String, String> headers = new java.util.HashMap<>();
+                headers.put("X-VIEW-BOT-ID", botId);
+                JSONObject u = httpJson("GET", "/status.php?action=uptime_stats", null, sessionId, headers);
+                JSONObject d24 = u != null ? u.optJSONObject("24h") : null;
+                JSONObject d7 = u != null ? u.optJSONObject("7d") : null;
+                rows.add(buildThuongBotRow(botId, d24, d7));
+            }
+            ui.post(() -> {
+                box.removeAllViews();
+                for (View r : rows) box.addView(r);
+            });
+        });
+    }
+
+    private View buildThuongBotRow(String botId, JSONObject d24, JSONObject d7) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setBackground(roundedBg(CARD, 12));
+        row.setPadding(28, 22, 28, 22);
+        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        rowLp.bottomMargin = 10;
+        row.setLayoutParams(rowLp);
+
+        TextView title = new TextView(this);
+        title.setText(botId);
+        title.setTextColor(TXT); title.setTextSize(13.5f);
+        LinearLayout.LayoutParams tLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tLp.bottomMargin = 8;
+        row.addView(title, tLp);
+
+        LinearLayout statsRow = new LinearLayout(this);
+        statsRow.setOrientation(LinearLayout.HORIZONTAL);
+        statsRow.addView(uptimeStatCell("Uptime 24h", d24));
+        statsRow.addView(uptimeStatCell("Uptime 7d", d7));
+        row.addView(statsRow);
+
+        long lastOfflineAt = d24 != null ? d24.optLong("last_offline_at", 0) : 0;
+        TextView offlineT = new TextView(this);
+        offlineT.setText("Offline gần nhất: " + (lastOfflineAt > 0
+                ? new java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale.getDefault()).format(new java.util.Date(lastOfflineAt * 1000L))
+                : "—"));
+        offlineT.setTextColor(SUB); offlineT.setTextSize(11);
+        LinearLayout.LayoutParams oLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        oLp.topMargin = 6;
+        row.addView(offlineT, oLp);
+        return row;
+    }
+
+    private View uptimeStatCell(String label, JSONObject stat) {
+        LinearLayout cell = new LinearLayout(this);
+        cell.setOrientation(LinearLayout.VERTICAL);
+        cell.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        TextView l = new TextView(this);
+        l.setText(label);
+        l.setTextColor(SUB); l.setTextSize(11);
+        cell.addView(l);
+        TextView v = new TextView(this);
+        Double pct = (stat != null && !stat.isNull("uptime_pct")) ? stat.optDouble("uptime_pct", Double.NaN) : null;
+        if (pct == null || pct.isNaN()) {
+            v.setText("—");
+            v.setTextColor(TXT);
+        } else {
+            v.setText(String.format(java.util.Locale.getDefault(), "%.1f%%", pct));
+            v.setTextColor(pct >= 95 ? OK : pct >= 80 ? Color.parseColor("#e6a23c") : BAD);
+        }
+        v.setTextSize(16);
+        cell.addView(v);
+        return cell;
     }
 
     private static final String[][] ALL_COMMANDS = {
@@ -1410,10 +1501,14 @@ public class MainActivity extends Activity {
         openAccountDialog(null, box);
     }
 
-    /** account == null -> tạo mới; account != null -> sửa (quyền + giới hạn lệnh + đổi mật khẩu). */
+    /** account == null -> tạo mới; account != null -> sửa (quyền + giới hạn lệnh + đổi mật khẩu).
+     * Nếu account chính là tài khoản đang đăng nhập (isSelf), BẮT BUỘC nhập đúng mật khẩu cũ
+     * mới cho đổi mật khẩu — khớp đúng rule bên web, tránh lỗ hổng tự đổi mật khẩu người khác
+     * (chính mình) qua admin_update_account mà không cần xác thực gì thêm. */
     private void openAccountDialog(JSONObject account, LinearLayout box) {
         boolean isEdit = account != null;
         String username = isEdit ? account.optString("username", "") : "";
+        boolean isSelf = isEdit && !myUsername.isEmpty() && myUsername.equals(username);
         String role = isEdit ? account.optString("role", "member") : "member";
         boolean showCommandLimits = !"admin".equals(role); // admin không cần giới hạn lệnh
         java.util.Set<String> allowedSet = new java.util.HashSet<>();
@@ -1451,11 +1546,35 @@ public class MainActivity extends Activity {
             dlgRoot.addView(independentBotCb);
         }
 
-        EditText passInput = new EditText(this);
-        passInput.setHint(isEdit ? "Mật khẩu mới (để trống = giữ nguyên)" : "Mật khẩu");
-        passInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        styleInput(passInput);
-        dlgRoot.addView(passInput);
+        final EditText[] passRefs = new EditText[4]; // [0]=old [1]=new [2]=confirm (isSelf) hoặc [3]=single (không phải self)
+        TextView selfPassErr = null;
+        if (isSelf) {
+            passRefs[0] = new EditText(this);
+            passRefs[0].setHint("Mật khẩu cũ");
+            passRefs[0].setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            styleInput(passRefs[0]);
+            dlgRoot.addView(passRefs[0]);
+            passRefs[1] = new EditText(this);
+            passRefs[1].setHint("Mật khẩu mới (để trống = giữ nguyên)");
+            passRefs[1].setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            styleInput(passRefs[1]);
+            dlgRoot.addView(passRefs[1]);
+            passRefs[2] = new EditText(this);
+            passRefs[2].setHint("Nhập lại mật khẩu mới");
+            passRefs[2].setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            styleInput(passRefs[2]);
+            dlgRoot.addView(passRefs[2]);
+            selfPassErr = new TextView(this);
+            selfPassErr.setTextColor(BAD); selfPassErr.setTextSize(12); selfPassErr.setPadding(0, 0, 0, 8);
+            dlgRoot.addView(selfPassErr);
+        } else {
+            passRefs[3] = new EditText(this);
+            passRefs[3].setHint(isEdit ? "Mật khẩu mới (để trống = giữ nguyên)" : "Mật khẩu");
+            passRefs[3].setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            styleInput(passRefs[3]);
+            dlgRoot.addView(passRefs[3]);
+        }
+        final TextView fSelfPassErr = selfPassErr;
 
         java.util.List<android.widget.CheckBox> checks = new java.util.ArrayList<>();
         if (showCommandLimits) {
@@ -1506,7 +1625,7 @@ public class MainActivity extends Activity {
         closeBtn.setLayoutParams(closeLp);
         btnRow.addView(closeBtn);
         Button delBtn = null;
-        if (isEdit) {
+        if (isEdit && !isSelf) {
             delBtn = new Button(this);
             delBtn.setText("Xoá");
             delBtn.setTextColor(Color.WHITE);
@@ -1521,10 +1640,24 @@ public class MainActivity extends Activity {
         saveBtn.setOnClickListener(v -> {
             java.util.List<String> selected = new java.util.ArrayList<>();
             for (android.widget.CheckBox cb : checks) if (cb.isChecked()) selected.add((String) cb.getTag());
-            String pass = passInput.getText().toString();
-            if (isEdit) {
+            if (isSelf) {
+                String oldP = passRefs[0].getText().toString();
+                String newP = passRefs[1].getText().toString();
+                String confirmP = passRefs[2].getText().toString();
+                if (newP.isEmpty() && confirmP.isEmpty() && oldP.isEmpty()) {
+                    // không đổi mật khẩu, chỉ lưu giới hạn lệnh (nếu có)
+                    saveAccountEditSelf(username, null, null, null, selected, box, dialog, fSelfPassErr);
+                    return;
+                }
+                if (oldP.isEmpty()) { fSelfPassErr.setText("Cần nhập mật khẩu cũ để đổi mật khẩu."); return; }
+                if (newP.isEmpty() || !newP.equals(confirmP)) { fSelfPassErr.setText("Mật khẩu mới nhập lại không khớp."); return; }
+                fSelfPassErr.setText("");
+                saveAccountEditSelf(username, oldP, newP, confirmP, selected, box, dialog, fSelfPassErr);
+            } else if (isEdit) {
+                String pass = passRefs[3].getText().toString();
                 saveAccountEdit(username, pass, selected, box, dialog);
             } else {
+                String pass = passRefs[3].getText().toString();
                 String newUser = userInput.getText().toString().trim();
                 if (newUser.isEmpty() || pass.isEmpty()) {
                     android.widget.Toast.makeText(this, "Cần nhập username và mật khẩu.", android.widget.Toast.LENGTH_SHORT).show();
@@ -1592,6 +1725,50 @@ public class MainActivity extends Activity {
         });
     }
 
+    /** Sửa CHÍNH tài khoản đang đăng nhập — đổi mật khẩu (nếu có) phải qua
+     * action change_password (xác thực đúng mật khẩu cũ ở backend), KHÔNG đi
+     * qua admin_update_account cho phần mật khẩu — khớp đúng rule bên web,
+     * chặn lỗ hổng tự đổi mật khẩu chính mình mà không cần biết mật khẩu cũ. */
+    private void saveAccountEditSelf(String username, String oldPass, String newPass, String newPassConfirm,
+                                      java.util.List<String> allowedCommands, LinearLayout box,
+                                      android.app.Dialog dialog, TextView errView) {
+        io.execute(() -> {
+            if (oldPass != null) {
+                JSONObject cpRes = null;
+                try {
+                    JSONObject body = new JSONObject();
+                    body.put("action", "change_password");
+                    body.put("old_password", oldPass);
+                    body.put("new_password", newPass);
+                    body.put("new_password_confirm", newPassConfirm);
+                    cpRes = httpJson("POST", "/auth.php", body, sessionId);
+                } catch (Exception ignored) {}
+                if (cpRes == null || !cpRes.optBoolean("ok", false)) {
+                    final JSONObject r = cpRes;
+                    ui.post(() -> errView.setText(r != null ? r.optString("message", "Đổi mật khẩu thất bại.") : "Lỗi kết nối server."));
+                    return;
+                }
+            }
+            JSONObject res = null;
+            try {
+                JSONObject body = new JSONObject();
+                body.put("action", "admin_update_account");
+                body.put("username", username);
+                body.put("allowed_commands", new JSONArray(allowedCommands));
+                res = httpJson("POST", "/auth.php", body, sessionId);
+            } catch (Exception ignored) {}
+            final JSONObject r2 = res;
+            ui.post(() -> {
+                if (r2 != null && r2.optBoolean("ok", false)) {
+                    dialog.dismiss();
+                    loadAccounts(box);
+                } else {
+                    errView.setText(r2 != null ? r2.optString("message", "Lưu thất bại.") : "Lỗi kết nối.");
+                }
+            });
+        });
+    }
+
     private void deleteAccount(String username, LinearLayout box) {
         io.execute(() -> {
             try {
@@ -1645,6 +1822,14 @@ public class MainActivity extends Activity {
                         timeT.setText(sdf.format(new Date(l.optLong("t", 0) * 1000L)));
                         timeT.setTextColor(SUB); timeT.setTextSize(11);
                         row.addView(msgT); row.addView(timeT);
+                        String ip = l.optString("ip", "");
+                        if (!ip.isEmpty()) {
+                            String device = l.optString("device", "");
+                            TextView ipT = new TextView(this);
+                            ipT.setText("IP: " + ip + (device.isEmpty() ? "" : " · " + device));
+                            ipT.setTextColor(SUB); ipT.setTextSize(11);
+                            row.addView(ipT);
+                        }
                         listBox.addView(row);
                     }
                 }
@@ -2356,8 +2541,12 @@ public class MainActivity extends Activity {
     }
 
     private JSONObject httpJson(String method, String path, JSONObject body, String session) {
+        return httpJson(method, path, body, session, null);
+    }
+
+    private JSONObject httpJson(String method, String path, JSONObject body, String session, java.util.Map<String, String> extraHeaders) {
         try {
-            String raw = httpRaw(method, path, body, session);
+            String raw = httpRaw(method, path, body, session, extraHeaders);
             if (raw == null) return null;
             return new JSONObject(raw);
         } catch (Exception e) {
@@ -2366,6 +2555,10 @@ public class MainActivity extends Activity {
     }
 
     private String httpRaw(String method, String path, JSONObject body, String session) {
+        return httpRaw(method, path, body, session, null);
+    }
+
+    private String httpRaw(String method, String path, JSONObject body, String session, java.util.Map<String, String> extraHeaders) {
         HttpURLConnection conn = null;
         try {
             URL url = new URL(API_BASE + path);
@@ -2375,6 +2568,11 @@ public class MainActivity extends Activity {
             conn.setReadTimeout(6000);
             conn.setRequestProperty("Content-Type", "application/json");
             if (session != null) conn.setRequestProperty("X-SESSION-ID", session);
+            if (extraHeaders != null) {
+                for (java.util.Map.Entry<String, String> e : extraHeaders.entrySet()) {
+                    conn.setRequestProperty(e.getKey(), e.getValue());
+                }
+            }
             if (body != null) {
                 conn.setDoOutput(true);
                 try (OutputStream os = conn.getOutputStream()) {
