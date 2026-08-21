@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
     // toàn bộ UI với màu mới, khỏi phải dò từng View đã tạo để cập nhật tay.
     private int BG, CARD, ACC, ACC_TEXT, OK, BAD, TXT, SUB, DIVIDER;
     private static final String NOT_LINKED_MSG =
-            "🔒 Chưa liên kết token quảot — vào tab Token, dán token rồi bấm Liên kết để xem được mục này.";
+            "🔒 Chưa liên kết token quản lý bot — vào tab Token, dán token rồi bấm Liên kết để xem được mục này.";
 
     private boolean darkMode = true;
 
@@ -99,7 +99,7 @@ public class MainActivity extends Activity {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private SharedPreferences prefs;
     private String sessionId;
-    private String currentRole = "meber";
+    private String currentRole = "member";
     private String myUsername = "";
     private java.util.Set<String> myAllowedCommands = new java.util.HashSet<>();
 
