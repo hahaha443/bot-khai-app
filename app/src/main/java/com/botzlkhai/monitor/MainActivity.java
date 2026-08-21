@@ -372,7 +372,65 @@ public class MainActivity extends Activity {
         polling = false;
         sessionId = null;
         prefs.edit().remove("session_id").apply();
+        if (accountLockedDialog != null) { accountLockedDialog.dismiss(); accountLockedDialog = null; }
         showLogin();
+    }
+
+    // ── Overlay 2 lớp: tài khoản bị Admin khoá lúc session cũ vẫn còn sống ──
+    private android.app.Dialog accountLockedDialog;
+
+    private void showAccountLockedOverlay() {
+        if (accountLockedDialog != null && accountLockedDialog.isShowing()) return;
+
+        android.app.Dialog dialog = new android.app.Dialog(this);
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+        dialog.setCancelable(false);
+        dialog.setCanceledOnTouchOutside(false);
+
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackground(roundedBg(CARD, 16));
+        box.setPadding(48, 44, 48, 36);
+        box.setGravity(Gravity.CENTER);
+
+        TextView icon = new TextView(this);
+        icon.setText("🔒");
+        icon.setTextSize(30);
+        icon.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams iLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        iLp.bottomMargin = 14;
+        box.addView(icon, iLp);
+
+        TextView t = new TextView(this);
+        t.setText("Tài khoản đã bị Admin khoá");
+        t.setTextColor(TXT);
+        t.setTextSize(16);
+        t.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams tLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tLp.bottomMargin = 24;
+        box.addView(t, tLp);
+
+        Button logoutBtn = new Button(this);
+        logoutBtn.setText("Đăng xuất");
+        logoutBtn.setTextColor(Color.WHITE);
+        logoutBtn.setBackground(roundedBg(BAD, 10));
+        logoutBtn.setOnClickListener(v -> logout());
+        box.addView(logoutBtn, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        dialog.setContentView(box);
+        android.view.Window w = dialog.getWindow();
+        if (w != null) {
+            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            w.setDimAmount(0.72f);
+            android.view.WindowManager.LayoutParams lp = w.getAttributes();
+            lp.width = (int) (getResources().getDisplayMetrics().widthPixels * 0.82);
+            w.setAttributes(lp);
+        }
+        accountLockedDialog = dialog;
+        dialog.show();
     }
 
     // ================= MAIN APP =================
@@ -2328,6 +2386,13 @@ public class MainActivity extends Activity {
             String result = readStream(is);
             if (code == 401) {
                 ui.post(this::logout);
+            } else if (code == 403) {
+                try {
+                    JSONObject errObj = new JSONObject(result);
+                    if ("account_locked".equals(errObj.optString("error"))) {
+                        ui.post(this::showAccountLockedOverlay);
+                    }
+                } catch (Exception ignored) {}
             }
             return result;
         } catch (Exception e) {
