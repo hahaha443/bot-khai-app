@@ -100,6 +100,7 @@ public class MainActivity extends Activity {
     private SharedPreferences prefs;
     private String sessionId;
     private String currentRole = "member";
+    private java.util.Set<String> myAllowedCommands = new java.util.HashSet<>();
 
     private FrameLayout root;
     private LinearLayout loginView, mainView;
@@ -141,7 +142,10 @@ public class MainActivity extends Activity {
             // phải đợi biết đúng role rồi mới showMain().
             io.execute(() -> {
                 JSONObject res = httpJson("GET", "/whoami.php", null, sessionId);
-                if (res != null) currentRole = res.optString("role", "member");
+                if (res != null) {
+                    currentRole = res.optString("role", "member");
+                    myAllowedCommands = jsonArrayToStringSet(res.optJSONArray("allowed_commands"));
+                }
                 ui.post(this::showMain);
             });
         } else {
@@ -304,8 +308,17 @@ public class MainActivity extends Activity {
     private void fetchWhoAmI() {
         io.execute(() -> {
             JSONObject res = httpJson("GET", "/whoami.php", null, sessionId);
-            if (res != null) currentRole = res.optString("role", "member");
+            if (res != null) {
+                currentRole = res.optString("role", "member");
+                myAllowedCommands = jsonArrayToStringSet(res.optJSONArray("allowed_commands"));
+            }
         });
+    }
+
+    private java.util.Set<String> jsonArrayToStringSet(JSONArray arr) {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        if (arr != null) for (int i = 0; i < arr.length(); i++) out.add(arr.optString(i));
+        return out;
     }
 
     private void doLogin(String username, String password, TextView err, Button btn) {
@@ -1076,17 +1089,23 @@ public class MainActivity extends Activity {
         box.addView(actionButton("👥 Làm mới danh sách bạn bè", () -> sendGlobalCmd("refresh_friends")));
         box.addView(actionButton("💬 Bật/tắt lệnh nhắn riêng (DM)", () -> sendGlobalCmd("toggle_dm")));
 
-        Button stopBtn = actionButton("⏹️ Dừng bot từ xa", () -> confirmDanger(
-                "Bot sẽ NGỪNG HOẠT ĐỘNG hoàn toàn cho tới khi bật lại thủ công trên máy. Chắc chắn dừng bot?",
-                "stop_bot"));
-        stopBtn.setTextColor(BAD);
-        box.addView(stopBtn);
+        boolean canStop = "admin".equals(currentRole) || myAllowedCommands.contains("stop_bot");
+        if (canStop) {
+            Button stopBtn = actionButton("⏹️ Dừng bot từ xa", () -> confirmDanger(
+                    "Bot sẽ NGỪNG HOẠT ĐỘNG hoàn toàn cho tới khi bật lại thủ công trên máy. Chắc chắn dừng bot?",
+                    "stop_bot"));
+            stopBtn.setTextColor(BAD);
+            box.addView(stopBtn);
+        }
 
-        Button restartBtn = actionButton("♻️ Khởi động lại bot từ xa", () -> confirmDanger(
-                "Bot sẽ khởi động lại tiến trình (mất vài giây gián đoạn). Chắc chắn khởi động lại?",
-                "restart_bot"));
-        restartBtn.setTextColor(BAD);
-        box.addView(restartBtn);
+        boolean canRestart = "admin".equals(currentRole) || myAllowedCommands.contains("restart_bot");
+        if (canRestart) {
+            Button restartBtn = actionButton("♻️ Khởi động lại bot từ xa", () -> confirmDanger(
+                    "Bot sẽ khởi động lại tiến trình (mất vài giây gián đoạn). Chắc chắn khởi động lại?",
+                    "restart_bot"));
+            restartBtn.setTextColor(BAD);
+            box.addView(restartBtn);
+        }
 
         Button logoutBtn = actionButton("🚪 Đăng xuất", this::logout);
         logoutBtn.setTextColor(BAD);
@@ -1326,7 +1345,7 @@ public class MainActivity extends Activity {
         {"toggle_welcome","Chào thành viên mới (nhóm)"}, {"refresh_friend_status","Làm mới trạng thái bạn bè"},
         {"send_group_message","Gửi tin nhắn nhóm"}, {"set_permission","Đổi quyền bạn bè"},
         {"toggle_user_block","Khoá/mở chặn user"}, {"refresh_group_info","Làm mới thông tin nhóm"},
-        {"unlink","Huỷ liên kết token"}, {"stop_bot","⚠️ Dừng bot"}, {"start_bot","⚠️ Khởi động lại bot"},
+        {"unlink","Huỷ liên kết token"}, {"stop_bot","⚠️ Dừng bot"}, {"restart_bot","⚠️ Khởi động lại bot"},
     };
 
     private void openCreateAccountDialog(LinearLayout box) {
@@ -2161,6 +2180,7 @@ public class MainActivity extends Activity {
                 if (!res.optBoolean("linked", true)) {
                     statusDot.setTextColor(Color.parseColor("#666666"));
                     statusText.setText(" 🔒 Chưa liên kết");
+                    if (botTitleView != null) botTitleView.setText("ZORIN TEAM VN"); // chưa liên kết -> không hiện tên bot/account cá nhân
                     if (uptimeVal != null) uptimeVal.setText("-");
                     if (sysVal != null) sysVal.setText("-");
                     if (groupsVal != null) groupsVal.setText("-");
