@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void refreshStatus() {
-        statusText.setText("Quyền hiển thị nổi: " + (canDrawOverlays() ? "ĐÃ CẤP" : "CHƯA CẤP"));
+        statusText.setText(" thị nổi: " + (canDrawOverlays() ? "ĐÃ CẤP" : "CHƯA CẤP"));
     }
 
     private boolean canDrawOverlays() {
