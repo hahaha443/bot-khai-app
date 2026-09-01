@@ -1,41 +1,33 @@
-plugins { id 'com.android.application' }
+plugins {
+    id 'com.android.application'
+}
 
 android {
-    namespace 'com.botzlkhai.monitor'
+    namespace 'com.hihu.donatefloat'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.botzlkhai.monitor"
-        minSdk 30
+        applicationId "com.hihu.donatefloat"
+        minSdk 24
         targetSdk 34
         versionCode 1
         versionName "1.0"
     }
 
-    // Chữ ký debug CỐ ĐỊNH (file bot-khai-debug.keystore commit sẵn trong repo).
-    // Lý do bắt buộc phải có: GitHub Actions chạy trên máy ảo MỚI mỗi lần build
-    // -> nếu dùng debug.keystore mặc định (tự sinh ở ~/.android), mỗi lần CI chạy
-    // sẽ SINH RA 1 CHỮ KÝ KHÁC NHAU -> cài APK mới đè lên bản cũ trên điện thoại
-    // sẽ báo lỗi "App not installed" (xung đột chữ ký) vì Android không cho ghi đè
-    // app khác chữ ký. Khai báo signingConfig riêng dùng keystore cố định để mọi
-    // bản build (dù chạy trên máy ảo nào) đều ký giống nhau, cài đè bình thường.
-    signingConfigs {
-        debug {
-            storeFile file("bot-khai-debug.keystore")
-            storePassword "botkhai123"
-            keyAlias "botkhai"
-            keyPassword "botkhai123"
+    buildTypes {
+        debug {}
+        release {
+            minifyEnabled false
         }
     }
 
-    buildTypes {
-        debug {
-            signingConfig signingConfigs.debug
-        }
-        release {
-            minifyEnabled false
-            signingConfig signingConfigs.debug // tạm dùng chung key debug để APK tải qua Action luôn cài đè được
-        }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 }
 
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+}
