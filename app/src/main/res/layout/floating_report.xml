@@ -33,16 +33,10 @@
         </ScrollView>
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/resizeHandleReport"
-        android:layout_width="26dp"
-        android:layout_height="26dp"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="2dp"
-        android:background="@drawable/bg_resize_handle"
-        android:gravity="center"
-        android:text="⤡"
-        android:textColor="#FFFFFF"
-        android:textSize="14sp" />
+    <!-- 4 vùng chạm trong suốt ở 4 góc — kéo góc nào cũng resize được, không hiện icon gì -->
+    <View android:id="@+id/resizeReportTL" android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="top|start" />
+    <View android:id="@+id/resizeReportTR" android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="top|end" />
+    <View android:id="@+id/resizeReportBL" android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="bottom|start" />
+    <View android:id="@+id/resizeReportBR" android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="bottom|end" />
 
 </FrameLayout>

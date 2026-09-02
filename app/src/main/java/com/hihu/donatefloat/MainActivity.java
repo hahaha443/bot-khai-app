@@ -136,6 +136,39 @@ public class MainActivity extends AppCompatActivity {
         // ─── Thống kê ───
         findViewById(R.id.btnRefreshStats).setOnClickListener(v -> refreshStats());
 
+        // ─── Menu Ghi chú (menu rời #3) ───
+        EditText noteEdit = findViewById(R.id.editNoteText);
+        noteEdit.setText(Prefs.noteText(this));
+
+        findViewById(R.id.btnSaveNote).setOnClickListener(v -> {
+            Prefs.setNoteText(this, noteEdit.getText().toString());
+            FloatingNoteService.updateText(this);
+            Toast.makeText(this, "Đã lưu nội dung ghi chú", Toast.LENGTH_SHORT).show();
+        });
+
+        findViewById(R.id.btnToggleNote).setOnClickListener(v -> {
+            if (!canDrawOverlays()) {
+                Toast.makeText(this, "Chưa cấp quyền hiển thị nổi", Toast.LENGTH_SHORT).show();
+                checkAndRequestOverlay();
+                return;
+            }
+            toggleService(FloatingNoteService.class, FloatingNoteService.isRunning());
+        });
+
+        SeekBar noteSize = findViewById(R.id.seekNoteSize);
+        noteSize.setProgress(Prefs.noteSizeDp(this));
+        noteSize.setOnSeekBarChangeListener(new SimpleSeek(v -> {
+            Prefs.setNoteSizeDp(this, Math.max(v, 60));
+            FloatingNoteService.updateSize(this);
+        }));
+
+        SeekBar noteOpacity = findViewById(R.id.seekNoteOpacity);
+        noteOpacity.setProgress(Prefs.noteOpacity(this));
+        noteOpacity.setOnSeekBarChangeListener(new SimpleSeek(v -> {
+            Prefs.setNoteOpacity(this, v);
+            FloatingNoteService.updateOpacity(this);
+        }));
+
         // ─── Lịch sử ───
         findViewById(R.id.btnHistory).setOnClickListener(v ->
                 startActivity(new Intent(this, TransactionHistoryActivity.class)));
@@ -157,6 +190,9 @@ public class MainActivity extends AppCompatActivity {
             }
             if (!FloatingQRService.isRunning()) {
                 ContextCompat.startForegroundService(this, new Intent(this, FloatingQRService.class));
+            }
+            if (!FloatingNoteService.isRunning()) {
+                ContextCompat.startForegroundService(this, new Intent(this, FloatingNoteService.class));
             }
         }
     }

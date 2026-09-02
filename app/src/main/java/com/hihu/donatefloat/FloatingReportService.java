@@ -94,17 +94,32 @@ public class FloatingReportService extends Service {
         floatView.findViewById(R.id.dragHandleReport)
                 .setOnTouchListener(new DragTouchListener(params, wm, floatView));
 
-        View resizeHandle = floatView.findViewById(R.id.resizeHandleReport);
-        resizeHandle.setOnTouchListener(new ResizeTouchListener(params, wm, floatView, dp(60), (w, h) -> {
-            Prefs.setReportSizeDp(this, pxToDp(w));
-            Prefs.setReportHeightDp(this, pxToDp(h));
-        }));
+        wireCornerResize();
 
         wm.addView(floatView, params);
         applyBgOpacity();
         applyContentOpacity();
         applyLocked();
+        LockBubble.acquire(this);
         handler.post(poller);
+    }
+
+    private void wireCornerResize() {
+        int min = dp(60);
+        CornerResizeListener.OnResized onResized = (w, h) -> {
+            Prefs.setReportSizeDp(this, pxToDp(w));
+            Prefs.setReportHeightDp(this, pxToDp(h));
+        };
+        bindCorner(R.id.resizeReportTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized);
+        bindCorner(R.id.resizeReportTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized);
+        bindCorner(R.id.resizeReportBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, onResized);
+        bindCorner(R.id.resizeReportBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, onResized);
+    }
+
+    private void bindCorner(int viewId, CornerResizeListener.Corner corner, int min,
+                             CornerResizeListener.OnResized onResized) {
+        View v = floatView.findViewById(viewId);
+        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized));
     }
 
     private void applySize() {
@@ -259,6 +274,7 @@ public class FloatingReportService extends Service {
         running = false;
         instance = null;
         handler.removeCallbacks(poller);
+        LockBubble.release();
         if (alertView != null) {
             try { wm.removeView(alertView); } catch (Exception ignored) {}
         }

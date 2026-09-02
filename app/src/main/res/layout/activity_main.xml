@@ -139,6 +139,53 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="Menu Ghi chú nổi (menu rời #3)"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/editNoteText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nội dung muốn hiện nổi trên màn hình..."
+            android:minLines="2"
+            android:gravity="top" />
+
+        <Button
+            android:id="@+id/btnSaveNote"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Lưu nội dung ghi chú" />
+
+        <Button
+            android:id="@+id/btnToggleNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Bật / tắt menu Ghi chú" />
+
+        <TextView style="@style/SliderLabel" android:text="Kích thước menu Ghi chú (hoặc kéo góc bất kỳ trên menu)" />
+        <SeekBar
+            android:id="@+id/seekNoteSize"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="600"
+            android:min="60" />
+
+        <TextView style="@style/SliderLabel" android:text="Độ mờ menu Ghi chú" />
+        <SeekBar
+            android:id="@+id/seekNoteOpacity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:min="0" />
+
+        <View style="@style/DividerLine" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:text="Thống kê"
             android:textStyle="bold"
             android:textSize="16sp"

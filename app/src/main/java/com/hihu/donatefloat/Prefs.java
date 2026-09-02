@@ -115,4 +115,37 @@ public class Prefs {
     public static void setAutoStartMenus(Context ctx, boolean v) {
         sp(ctx).edit().putBoolean("auto_start_menus", v).apply();
     }
+
+    // ─── Menu Ghi chú nổi (menu rời thứ 3) ───
+    public static String noteText(Context ctx) {
+        return sp(ctx).getString("note_text", "Mục tiêu donate hôm nay: 500k 🎯");
+    }
+
+    public static void setNoteText(Context ctx, String v) {
+        sp(ctx).edit().putString("note_text", v).apply();
+    }
+
+    public static int noteSizeDp(Context ctx) {
+        return sp(ctx).getInt("note_size_dp", 220);
+    }
+
+    public static void setNoteSizeDp(Context ctx, int v) {
+        sp(ctx).edit().putInt("note_size_dp", v).apply();
+    }
+
+    public static int noteHeightDp(Context ctx) {
+        return sp(ctx).getInt("note_height_dp", 90);
+    }
+
+    public static void setNoteHeightDp(Context ctx, int v) {
+        sp(ctx).edit().putInt("note_height_dp", v).apply();
+    }
+
+    public static int noteOpacity(Context ctx) {
+        return sp(ctx).getInt("note_opacity", 90);
+    }
+
+    public static void setNoteOpacity(Context ctx, int v) {
+        sp(ctx).edit().putInt("note_opacity", v).apply();
+    }
 }

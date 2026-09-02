@@ -1,0 +1,42 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:id="@+id/notePanel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@drawable/bg_floating">
+
+        <TextView
+            android:id="@+id/dragHandleNote"
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:background="@drawable/bg_drag_handle_neutral"
+            android:gravity="center"
+            android:text="≡  Ghi chú"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <TextView
+                android:id="@+id/noteContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
+        </ScrollView>
+    </LinearLayout>
+
+    <View android:id="@+id/resizeNoteTL" android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="top|start" />
+    <View android:id="@+id/resizeNoteTR" android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="top|end" />
+    <View android:id="@+id/resizeNoteBL" android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="bottom|start" />
+    <View android:id="@+id/resizeNoteBR" android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="bottom|end" />
+
+</FrameLayout>
