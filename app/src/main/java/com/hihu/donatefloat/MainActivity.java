@@ -220,6 +220,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            if (fromUser) onValue.run(progress);
         }
 
         @Override
@@ -228,7 +229,6 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onStopTrackingTouch(SeekBar seekBar) {
-            onValue.run(seekBar.getProgress());
         }
     }
 }
