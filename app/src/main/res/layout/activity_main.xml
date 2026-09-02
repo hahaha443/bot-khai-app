@@ -79,13 +79,21 @@
             android:max="600"
             android:min="60" />
 
-        <TextView style="@style/SliderLabel" android:text="Độ mờ bảng Báo cáo" />
+        <TextView style="@style/SliderLabel" android:text="Độ mờ NỀN bảng Báo cáo (chữ vẫn rõ)" />
         <SeekBar
-            android:id="@+id/seekReportOpacity"
+            android:id="@+id/seekReportBgOpacity"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:max="100"
-            android:min="20" />
+            android:min="0" />
+
+        <TextView style="@style/SliderLabel" android:text="Độ mờ NỘI DUNG bảng Báo cáo (nền vẫn rõ)" />
+        <SeekBar
+            android:id="@+id/seekReportContentOpacity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:min="0" />
 
         <Button
             android:id="@+id/btnToggleQR"

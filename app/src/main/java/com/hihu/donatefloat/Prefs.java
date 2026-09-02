@@ -74,13 +74,22 @@ public class Prefs {
         sp(ctx).edit().putInt("last_seen_id", v).apply();
     }
 
-    // Độ mờ tính theo %, 100 = hiện rõ hoàn toàn, càng thấp càng trong suốt
-    public static int reportOpacity(Context ctx) {
-        return sp(ctx).getInt("report_opacity", 90);
+    // Độ mờ tính theo %, 100 = hiện rõ hoàn toàn, 0 = trong suốt hẳn
+    // Tách riêng: mờ NỀN (khung/background) và mờ NỘI DUNG (chữ) của bảng Báo cáo
+    public static int reportBgOpacity(Context ctx) {
+        return sp(ctx).getInt("report_bg_opacity", 90);
     }
 
-    public static void setReportOpacity(Context ctx, int v) {
-        sp(ctx).edit().putInt("report_opacity", v).apply();
+    public static void setReportBgOpacity(Context ctx, int v) {
+        sp(ctx).edit().putInt("report_bg_opacity", v).apply();
+    }
+
+    public static int reportContentOpacity(Context ctx) {
+        return sp(ctx).getInt("report_content_opacity", 100);
+    }
+
+    public static void setReportContentOpacity(Context ctx, int v) {
+        sp(ctx).edit().putInt("report_content_opacity", v).apply();
     }
 
     public static int qrOpacity(Context ctx) {

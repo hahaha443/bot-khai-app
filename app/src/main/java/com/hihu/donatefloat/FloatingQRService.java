@@ -103,13 +103,18 @@ public class FloatingQRService extends Service {
                     public void onSuccess(Bitmap result) {
                         handler.post(() -> {
                             qrImage.setImageBitmap(result);
-                            statusText.setText("Quét QR rồi tự ghi nội dung trong app ngân hàng");
+                            // Ẩn dòng chữ trạng thái đi để ảnh QR chiếm hết diện tích còn lại —
+                            // đặc biệt quan trọng khi thu nhỏ cả bảng, QR vẫn to tối đa.
+                            statusText.setVisibility(View.GONE);
                         });
                     }
 
                     @Override
                     public void onError(String message) {
-                        handler.post(() -> statusText.setText("Lỗi tải QR: " + message));
+                        handler.post(() -> {
+                            statusText.setVisibility(View.VISIBLE);
+                            statusText.setText("Lỗi tải QR: " + message);
+                        });
                     }
                 });
             }

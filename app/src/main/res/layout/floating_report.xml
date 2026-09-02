@@ -3,6 +3,7 @@
     android:layout_height="wrap_content">
 
     <LinearLayout
+        android:id="@+id/reportPanel"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -11,12 +12,12 @@
         <TextView
             android:id="@+id/dragHandleReport"
             android:layout_width="match_parent"
-            android:layout_height="32dp"
-            android:background="@drawable/bg_drag_handle"
+            android:layout_height="24dp"
+            android:background="@drawable/bg_drag_handle_neutral"
             android:gravity="center"
             android:text="≡  Báo cáo giao dịch"
             android:textColor="#FFFFFF"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
         <ScrollView
             android:layout_width="match_parent"

@@ -7,6 +7,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.PixelFormat;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -19,17 +20,22 @@ import android.view.WindowManager;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-/** Floating menu #1: danh sách giao dịch đã nhận, hiện nội dung người
- * chuyển. Tự poll /transactions mỗi 5s + hiện popup thông báo nổi khi có
- * giao dịch mới. Kéo góc dưới-phải để resize tự do, có thể khoá tương tác
- * để không đụng trúng lúc chơi game. */
+/** Floating menu #1: danh sách giao dịch. Mỗi dòng tự biến mất sau 25s,
+ * tối đa hiện 2 dòng cùng lúc (dòng cũ nhất bị đẩy ra khi có dòng thứ 3).
+ * Độ mờ tách riêng: mờ NỀN (khung) và mờ NỘI DUNG (chữ), có thể mờ tới
+ * trong suốt hẳn. Kéo góc dưới-phải để resize tự do, có thể khoá tương
+ * tác để không đụng trúng lúc chơi game. */
 public class FloatingReportService extends Service {
+
+    private static final int MAX_VISIBLE_ROWS = 2;
+    private static final long ROW_LIFETIME_MS = 25_000;
 
     private static boolean running = false;
     private static FloatingReportService instance;
 
     private WindowManager wm;
     private View floatView;
+    private LinearLayout panel;
     private WindowManager.LayoutParams params;
     private LinearLayout list;
     private View alertView;
@@ -42,16 +48,18 @@ public class FloatingReportService extends Service {
         if (instance != null) instance.applySize();
     }
 
-    public static void updateOpacity(Context ctx) {
-        if (instance != null) instance.applyOpacity();
+    public static void updateBgOpacity(Context ctx) {
+        if (instance != null) instance.applyBgOpacity();
+    }
+
+    public static void updateContentOpacity(Context ctx) {
+        if (instance != null) instance.applyContentOpacity();
     }
 
     public static void updateLocked(Context ctx) {
         if (instance != null) instance.applyLocked();
     }
 
-    /** Bơm 2 dòng dữ liệu giả để canh size/độ mờ, không đụng last_seen_id
-     * thật nên không ảnh hưởng dữ liệu thật khi poll tiếp. */
     public static void injectDemo() {
         if (instance != null) instance.doInjectDemo();
     }
@@ -65,6 +73,7 @@ public class FloatingReportService extends Service {
 
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         floatView = LayoutInflater.from(this).inflate(R.layout.floating_report, null);
+        panel = floatView.findViewById(R.id.reportPanel);
         list = floatView.findViewById(R.id.reportList);
 
         int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
@@ -91,8 +100,9 @@ public class FloatingReportService extends Service {
             Prefs.setReportHeightDp(this, pxToDp(h));
         }));
 
-        applyOpacity();
         wm.addView(floatView, params);
+        applyBgOpacity();
+        applyContentOpacity();
         applyLocked();
         handler.post(poller);
     }
@@ -104,9 +114,22 @@ public class FloatingReportService extends Service {
         wm.updateViewLayout(floatView, params);
     }
 
-    private void applyOpacity() {
-        if (floatView == null) return;
-        floatView.setAlpha(Prefs.reportOpacity(this) / 100f);
+    /** Chỉ làm mờ NỀN (khung) — chữ/nội dung bên trong vẫn giữ nguyên độ rõ. */
+    private void applyBgOpacity() {
+        if (panel == null) return;
+        Drawable bg = panel.getBackground();
+        if (bg != null) {
+            bg.mutate().setAlpha((int) (Prefs.reportBgOpacity(this) / 100f * 255));
+        }
+    }
+
+    /** Chỉ làm mờ NỘI DUNG (từng dòng chữ) — nền/khung vẫn giữ nguyên độ rõ. */
+    private void applyContentOpacity() {
+        if (list == null) return;
+        float alpha = Prefs.reportContentOpacity(this) / 100f;
+        for (int i = 0; i < list.getChildCount(); i++) {
+            list.getChildAt(i).setAlpha(alpha);
+        }
     }
 
     private void applyLocked() {
@@ -120,7 +143,7 @@ public class FloatingReportService extends Service {
         wm.updateViewLayout(floatView, params);
         TextView handle = floatView.findViewById(R.id.dragHandleReport);
         if (handle != null) {
-            handle.setText(locked ? "🔒 Báo cáo (đã khoá)" : "≡  Báo cáo giao dịch");
+            handle.setText(locked ? "🔒 (đã khoá)" : "≡  Báo cáo giao dịch");
         }
     }
 
@@ -143,7 +166,6 @@ public class FloatingReportService extends Service {
                         showAlert(t.amount, t.description);
                         Prefs.setLastSeenId(FloatingReportService.this, t.id);
                     }
-                    while (list.getChildCount() > 30) list.removeViewAt(0);
                 });
             }
 
@@ -161,13 +183,23 @@ public class FloatingReportService extends Service {
         showAlert(120000, "TRAN THI B UNG HO STREAM DEMO");
     }
 
+    /** Thêm 1 dòng — tối đa MAX_VISIBLE_ROWS dòng hiện cùng lúc (dòng cũ
+     * nhất bị đẩy ra khi vượt), và mỗi dòng tự biến mất sau ROW_LIFETIME_MS
+     * nếu chưa bị đẩy ra trước đó. */
     private void addRow(long amount, String description) {
         TextView tv = new TextView(this);
         tv.setText(String.format("+%,d đ\n%s", amount, description));
         tv.setTextColor(0xFFFFFFFF);
         tv.setTextSize(12);
         tv.setPadding(dp(6), dp(4), dp(6), dp(4));
+        tv.setAlpha(Prefs.reportContentOpacity(this) / 100f);
         list.addView(tv);
+
+        while (list.getChildCount() > MAX_VISIBLE_ROWS) list.removeViewAt(0);
+
+        handler.postDelayed(() -> {
+            if (tv.getParent() != null) list.removeView(tv);
+        }, ROW_LIFETIME_MS);
     }
 
     private void showAlert(long amount, String content) {

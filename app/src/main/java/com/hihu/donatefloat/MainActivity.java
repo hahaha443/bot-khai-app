@@ -90,11 +90,18 @@ public class MainActivity extends AppCompatActivity {
         }));
 
         // ─── Độ mờ ───
-        SeekBar reportOpacity = findViewById(R.id.seekReportOpacity);
-        reportOpacity.setProgress(Prefs.reportOpacity(this));
-        reportOpacity.setOnSeekBarChangeListener(new SimpleSeek(v -> {
-            Prefs.setReportOpacity(this, Math.max(v, 20));
-            FloatingReportService.updateOpacity(this);
+        SeekBar reportBgOpacity = findViewById(R.id.seekReportBgOpacity);
+        reportBgOpacity.setProgress(Prefs.reportBgOpacity(this));
+        reportBgOpacity.setOnSeekBarChangeListener(new SimpleSeek(v -> {
+            Prefs.setReportBgOpacity(this, v);
+            FloatingReportService.updateBgOpacity(this);
+        }));
+
+        SeekBar reportContentOpacity = findViewById(R.id.seekReportContentOpacity);
+        reportContentOpacity.setProgress(Prefs.reportContentOpacity(this));
+        reportContentOpacity.setOnSeekBarChangeListener(new SimpleSeek(v -> {
+            Prefs.setReportContentOpacity(this, v);
+            FloatingReportService.updateContentOpacity(this);
         }));
 
         SeekBar qrOpacity = findViewById(R.id.seekQrOpacity);
