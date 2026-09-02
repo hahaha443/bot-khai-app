@@ -21,7 +21,8 @@ import android.widget.TextView;
 
 /** Floating menu #1: danh sách giao dịch đã nhận, hiện nội dung người
  * chuyển. Tự poll /transactions mỗi 5s + hiện popup thông báo nổi khi có
- * giao dịch mới. */
+ * giao dịch mới. Kéo góc dưới-phải để resize tự do, có thể khoá tương tác
+ * để không đụng trúng lúc chơi game. */
 public class FloatingReportService extends Service {
 
     private static boolean running = false;
@@ -45,6 +46,10 @@ public class FloatingReportService extends Service {
         if (instance != null) instance.applyOpacity();
     }
 
+    public static void updateLocked(Context ctx) {
+        if (instance != null) instance.applyLocked();
+    }
+
     /** Bơm 2 dòng dữ liệu giả để canh size/độ mờ, không đụng last_seen_id
      * thật nên không ảnh hưởng dữ liệu thật khi poll tiếp. */
     public static void injectDemo() {
@@ -66,10 +71,12 @@ public class FloatingReportService extends Service {
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 : WindowManager.LayoutParams.TYPE_PHONE;
 
+        int flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        if (Prefs.locked(this)) flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+
         params = new WindowManager.LayoutParams(
-                dp(Prefs.reportSizeDp(this)), dp(220),
-                type,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                dp(Prefs.reportSizeDp(this)), dp(Prefs.reportHeightDp(this)),
+                type, flags,
                 PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.TOP | Gravity.START;
         params.x = 20;
@@ -78,14 +85,22 @@ public class FloatingReportService extends Service {
         floatView.findViewById(R.id.dragHandleReport)
                 .setOnTouchListener(new DragTouchListener(params, wm, floatView));
 
+        View resizeHandle = floatView.findViewById(R.id.resizeHandleReport);
+        resizeHandle.setOnTouchListener(new ResizeTouchListener(params, wm, floatView, dp(60), (w, h) -> {
+            Prefs.setReportSizeDp(this, pxToDp(w));
+            Prefs.setReportHeightDp(this, pxToDp(h));
+        }));
+
         applyOpacity();
         wm.addView(floatView, params);
+        applyLocked();
         handler.post(poller);
     }
 
     private void applySize() {
         if (params == null || floatView == null) return;
         params.width = dp(Prefs.reportSizeDp(this));
+        params.height = dp(Prefs.reportHeightDp(this));
         wm.updateViewLayout(floatView, params);
     }
 
@@ -94,8 +109,27 @@ public class FloatingReportService extends Service {
         floatView.setAlpha(Prefs.reportOpacity(this) / 100f);
     }
 
+    private void applyLocked() {
+        if (params == null || floatView == null || wm == null) return;
+        boolean locked = Prefs.locked(this);
+        if (locked) {
+            params.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+        } else {
+            params.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+        }
+        wm.updateViewLayout(floatView, params);
+        TextView handle = floatView.findViewById(R.id.dragHandleReport);
+        if (handle != null) {
+            handle.setText(locked ? "🔒 Báo cáo (đã khoá)" : "≡  Báo cáo giao dịch");
+        }
+    }
+
     private int dp(int v) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, getResources().getDisplayMetrics());
+    }
+
+    private int pxToDp(int px) {
+        return (int) (px / getResources().getDisplayMetrics().density);
     }
 
     private void poll() {

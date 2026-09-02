@@ -58,6 +58,12 @@
             android:layout_height="wrap_content"
             android:text="Tự bật cả 2 menu khi mở app" />
 
+        <CheckBox
+            android:id="@+id/checkLocked"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔒 Khoá tương tác 2 menu (chơi game khỏi sợ bấm trúng)" />
+
         <Button
             android:id="@+id/btnToggleReport"
             android:layout_width="match_parent"
@@ -65,13 +71,13 @@
             android:layout_marginTop="12dp"
             android:text="Bật / tắt menu Báo cáo" />
 
-        <TextView style="@style/SliderLabel" android:text="Kích thước menu Báo cáo" />
+        <TextView style="@style/SliderLabel" android:text="Kích thước menu Báo cáo (hoặc kéo góc ⤡ trên menu để chỉnh tự do)" />
         <SeekBar
             android:id="@+id/seekReportSize"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:max="500"
-            android:min="150" />
+            android:max="600"
+            android:min="60" />
 
         <TextView style="@style/SliderLabel" android:text="Độ mờ bảng Báo cáo" />
         <SeekBar
@@ -88,13 +94,13 @@
             android:layout_marginTop="16dp"
             android:text="Bật / tắt menu QR" />
 
-        <TextView style="@style/SliderLabel" android:text="Kích thước menu QR" />
+        <TextView style="@style/SliderLabel" android:text="Kích thước menu QR (hoặc kéo góc ⤡ trên menu để chỉnh tự do)" />
         <SeekBar
             android:id="@+id/seekQrSize"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:max="500"
-            android:min="150" />
+            android:max="600"
+            android:min="60" />
 
         <TextView style="@style/SliderLabel" android:text="Độ mờ bảng QR" />
         <SeekBar

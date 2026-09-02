@@ -45,6 +45,16 @@ public class MainActivity extends AppCompatActivity {
         autoStart.setChecked(Prefs.autoStartMenus(this));
         autoStart.setOnCheckedChangeListener((btn, checked) -> Prefs.setAutoStartMenus(this, checked));
 
+        CheckBox lockedBox = findViewById(R.id.checkLocked);
+        lockedBox.setChecked(Prefs.locked(this));
+        lockedBox.setOnCheckedChangeListener((btn, checked) -> {
+            Prefs.setLocked(this, checked);
+            FloatingReportService.updateLocked(this);
+            FloatingQRService.updateLocked(this);
+            Toast.makeText(this, checked ? "Đã khoá — 2 menu sẽ không nhận chạm nữa" : "Đã mở khoá",
+                    Toast.LENGTH_SHORT).show();
+        });
+
         // ─── Bật/tắt menu ───
         findViewById(R.id.btnToggleReport).setOnClickListener(v -> {
             if (!canDrawOverlays()) {
@@ -68,14 +78,14 @@ public class MainActivity extends AppCompatActivity {
         SeekBar reportSize = findViewById(R.id.seekReportSize);
         reportSize.setProgress(Prefs.reportSizeDp(this));
         reportSize.setOnSeekBarChangeListener(new SimpleSeek(v -> {
-            Prefs.setReportSizeDp(this, v);
+            Prefs.setReportSizeDp(this, Math.max(v, 60));
             FloatingReportService.updateSize(this);
         }));
 
         SeekBar qrSize = findViewById(R.id.seekQrSize);
         qrSize.setProgress(Prefs.qrSizeDp(this));
         qrSize.setOnSeekBarChangeListener(new SimpleSeek(v -> {
-            Prefs.setQrSizeDp(this, v);
+            Prefs.setQrSizeDp(this, Math.max(v, 60));
             FloatingQRService.updateSize(this);
         }));
 

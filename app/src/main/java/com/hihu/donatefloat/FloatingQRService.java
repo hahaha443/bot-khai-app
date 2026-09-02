@@ -22,8 +22,8 @@ import android.widget.TextView;
 
 /** Floating menu #2: QR TĨNH của tài khoản — KHÔNG addInfo, KHÔNG mã cố
  * định. Ai quét cũng ra đúng QR này, tự nhập nội dung/ghi chú trong app
- * ngân hàng của họ. Bảng Báo cáo (FloatingReportService) sẽ tự hiện đúng
- * số tiền + nội dung họ gõ, không cần app này biết trước nội dung là gì. */
+ * ngân hàng của họ. Kéo góc dưới-phải để resize tự do, có thể khoá tương
+ * tác để không đụng trúng lúc chơi game. */
 public class FloatingQRService extends Service {
 
     private static boolean running = false;
@@ -46,6 +46,10 @@ public class FloatingQRService extends Service {
         if (instance != null) instance.applyOpacity();
     }
 
+    public static void updateLocked(Context ctx) {
+        if (instance != null) instance.applyLocked();
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -62,10 +66,12 @@ public class FloatingQRService extends Service {
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 : WindowManager.LayoutParams.TYPE_PHONE;
 
+        int flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        if (Prefs.locked(this)) flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+
         params = new WindowManager.LayoutParams(
-                dp(Prefs.qrSizeDp(this)), WindowManager.LayoutParams.WRAP_CONTENT,
-                type,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                dp(Prefs.qrSizeDp(this)), dp(Prefs.qrHeightDp(this)),
+                type, flags,
                 PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.TOP | Gravity.START;
         params.x = 20;
@@ -74,8 +80,15 @@ public class FloatingQRService extends Service {
         floatView.findViewById(R.id.dragHandleQr)
                 .setOnTouchListener(new DragTouchListener(params, wm, floatView));
 
+        View resizeHandle = floatView.findViewById(R.id.resizeHandleQr);
+        resizeHandle.setOnTouchListener(new ResizeTouchListener(params, wm, floatView, dp(80), (w, h) -> {
+            Prefs.setQrSizeDp(this, pxToDp(w));
+            Prefs.setQrHeightDp(this, pxToDp(h));
+        }));
+
         applyOpacity();
         wm.addView(floatView, params);
+        applyLocked();
         loadStaticQr();
     }
 
@@ -111,6 +124,7 @@ public class FloatingQRService extends Service {
     private void applySize() {
         if (params == null || floatView == null) return;
         params.width = dp(Prefs.qrSizeDp(this));
+        params.height = dp(Prefs.qrHeightDp(this));
         wm.updateViewLayout(floatView, params);
     }
 
@@ -119,8 +133,27 @@ public class FloatingQRService extends Service {
         floatView.setAlpha(Prefs.qrOpacity(this) / 100f);
     }
 
+    private void applyLocked() {
+        if (params == null || floatView == null || wm == null) return;
+        boolean locked = Prefs.locked(this);
+        if (locked) {
+            params.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+        } else {
+            params.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+        }
+        wm.updateViewLayout(floatView, params);
+        TextView handle = floatView.findViewById(R.id.dragHandleQr);
+        if (handle != null) {
+            handle.setText(locked ? "🔒 QR (đã khoá)" : "≡  QR chuyển khoản");
+        }
+    }
+
     private int dp(int v) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, getResources().getDisplayMetrics());
+    }
+
+    private int pxToDp(int px) {
+        return (int) (px / getResources().getDisplayMetrics().density);
     }
 
     private void startForegroundWithNotification() {

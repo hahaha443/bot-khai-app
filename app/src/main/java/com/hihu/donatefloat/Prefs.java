@@ -34,12 +34,36 @@ public class Prefs {
         sp(ctx).edit().putInt("report_size_dp", v).apply();
     }
 
+    public static int reportHeightDp(Context ctx) {
+        return sp(ctx).getInt("report_height_dp", 220);
+    }
+
+    public static void setReportHeightDp(Context ctx, int v) {
+        sp(ctx).edit().putInt("report_height_dp", v).apply();
+    }
+
     public static int qrSizeDp(Context ctx) {
         return sp(ctx).getInt("qr_size_dp", 240);
     }
 
     public static void setQrSizeDp(Context ctx, int v) {
         sp(ctx).edit().putInt("qr_size_dp", v).apply();
+    }
+
+    public static int qrHeightDp(Context ctx) {
+        return sp(ctx).getInt("qr_height_dp", 300);
+    }
+
+    public static void setQrHeightDp(Context ctx, int v) {
+        sp(ctx).edit().putInt("qr_height_dp", v).apply();
+    }
+
+    public static boolean locked(Context ctx) {
+        return sp(ctx).getBoolean("locked", false);
+    }
+
+    public static void setLocked(Context ctx, boolean v) {
+        sp(ctx).edit().putBoolean("locked", v).apply();
     }
 
     public static int lastSeenId(Context ctx) {

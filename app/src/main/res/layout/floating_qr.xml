@@ -1,36 +1,53 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:background="@drawable/bg_floating">
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@drawable/bg_floating">
+
+        <TextView
+            android:id="@+id/dragHandleQr"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_drag_handle"
+            android:gravity="center"
+            android:text="≡  QR chuyển khoản"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp" />
+
+        <ImageView
+            android:id="@+id/imageQr"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_margin="8dp"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter" />
+
+        <TextView
+            android:id="@+id/textQrStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="6dp"
+            android:gravity="center"
+            android:textColor="#CCCCCC"
+            android:textSize="10sp"
+            android:text="Đang tải QR..." />
+    </LinearLayout>
 
     <TextView
-        android:id="@+id/dragHandleQr"
-        android:layout_width="match_parent"
-        android:layout_height="32dp"
-        android:background="@drawable/bg_drag_handle"
+        android:id="@+id/resizeHandleQr"
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="2dp"
+        android:background="@drawable/bg_resize_handle"
         android:gravity="center"
-        android:text="≡  QR chuyển khoản"
+        android:text="⤡"
         android:textColor="#FFFFFF"
-        android:textSize="12sp" />
+        android:textSize="14sp" />
 
-    <ImageView
-        android:id="@+id/imageQr"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_margin="8dp"
-        android:adjustViewBounds="true"
-        android:scaleType="fitCenter" />
-
-    <TextView
-        android:id="@+id/textQrStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="6dp"
-        android:gravity="center"
-        android:textColor="#CCCCCC"
-        android:textSize="10sp"
-        android:text="Đang tải QR..." />
-
-</LinearLayout>
+</FrameLayout>
