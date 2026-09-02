@@ -49,4 +49,37 @@ public class Prefs {
     public static void setLastSeenId(Context ctx, int v) {
         sp(ctx).edit().putInt("last_seen_id", v).apply();
     }
+
+    // Độ mờ tính theo %, 100 = hiện rõ hoàn toàn, càng thấp càng trong suốt
+    public static int reportOpacity(Context ctx) {
+        return sp(ctx).getInt("report_opacity", 90);
+    }
+
+    public static void setReportOpacity(Context ctx, int v) {
+        sp(ctx).edit().putInt("report_opacity", v).apply();
+    }
+
+    public static int qrOpacity(Context ctx) {
+        return sp(ctx).getInt("qr_opacity", 90);
+    }
+
+    public static void setQrOpacity(Context ctx, int v) {
+        sp(ctx).edit().putInt("qr_opacity", v).apply();
+    }
+
+    public static int alertOpacity(Context ctx) {
+        return sp(ctx).getInt("alert_opacity", 95);
+    }
+
+    public static void setAlertOpacity(Context ctx, int v) {
+        sp(ctx).edit().putInt("alert_opacity", v).apply();
+    }
+
+    public static boolean autoStartMenus(Context ctx) {
+        return sp(ctx).getBoolean("auto_start_menus", false);
+    }
+
+    public static void setAutoStartMenus(Context ctx, boolean v) {
+        sp(ctx).edit().putBoolean("auto_start_menus", v).apply();
+    }
 }

@@ -20,7 +20,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 /** Floating menu #1: danh sách giao dịch đã nhận, hiện nội dung người
- * chuyển. Tự poll /transactions mỗi 5s. */
+ * chuyển. Tự poll /transactions mỗi 5s + hiện popup thông báo nổi khi có
+ * giao dịch mới. */
 public class FloatingReportService extends Service {
 
     private static boolean running = false;
@@ -30,6 +31,7 @@ public class FloatingReportService extends Service {
     private View floatView;
     private WindowManager.LayoutParams params;
     private LinearLayout list;
+    private View alertView;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable poller = this::poll;
 
@@ -37,6 +39,16 @@ public class FloatingReportService extends Service {
 
     public static void updateSize(Context ctx) {
         if (instance != null) instance.applySize();
+    }
+
+    public static void updateOpacity(Context ctx) {
+        if (instance != null) instance.applyOpacity();
+    }
+
+    /** Bơm 2 dòng dữ liệu giả để canh size/độ mờ, không đụng last_seen_id
+     * thật nên không ảnh hưởng dữ liệu thật khi poll tiếp. */
+    public static void injectDemo() {
+        if (instance != null) instance.doInjectDemo();
     }
 
     @Override
@@ -66,6 +78,7 @@ public class FloatingReportService extends Service {
         floatView.findViewById(R.id.dragHandleReport)
                 .setOnTouchListener(new DragTouchListener(params, wm, floatView));
 
+        applyOpacity();
         wm.addView(floatView, params);
         handler.post(poller);
     }
@@ -74,6 +87,11 @@ public class FloatingReportService extends Service {
         if (params == null || floatView == null) return;
         params.width = dp(Prefs.reportSizeDp(this));
         wm.updateViewLayout(floatView, params);
+    }
+
+    private void applyOpacity() {
+        if (floatView == null) return;
+        floatView.setAlpha(Prefs.reportOpacity(this) / 100f);
     }
 
     private int dp(int v) {
@@ -87,10 +105,10 @@ public class FloatingReportService extends Service {
             public void onSuccess(ApiClient.Transaction[] result) {
                 handler.post(() -> {
                     for (ApiClient.Transaction t : result) {
-                        addRow(t);
+                        addRow(t.amount, t.description);
+                        showAlert(t.amount, t.description);
                         Prefs.setLastSeenId(FloatingReportService.this, t.id);
                     }
-                    // Giữ tối đa 30 dòng để menu không phình to
                     while (list.getChildCount() > 30) list.removeViewAt(0);
                 });
             }
@@ -103,14 +121,52 @@ public class FloatingReportService extends Service {
         handler.postDelayed(poller, 5000);
     }
 
-    private void addRow(ApiClient.Transaction t) {
+    private void doInjectDemo() {
+        addRow(50000, "NGUYEN VAN A CHUYEN QUA DEMO TEST");
+        addRow(120000, "TRAN THI B UNG HO STREAM DEMO");
+        showAlert(120000, "TRAN THI B UNG HO STREAM DEMO");
+    }
+
+    private void addRow(long amount, String description) {
         TextView tv = new TextView(this);
-        String note = t.matchedContent != null ? (" [" + t.matchedContent + "]") : "";
-        tv.setText(String.format("+%,d đ%s\n%s", t.amount, note, t.description));
+        tv.setText(String.format("+%,d đ\n%s", amount, description));
         tv.setTextColor(0xFFFFFFFF);
         tv.setTextSize(12);
         tv.setPadding(dp(6), dp(4), dp(6), dp(4));
         list.addView(tv);
+    }
+
+    private void showAlert(long amount, String content) {
+        if (alertView != null) {
+            try { wm.removeView(alertView); } catch (Exception ignored) {}
+            alertView = null;
+        }
+        alertView = LayoutInflater.from(this).inflate(R.layout.floating_alert, null);
+        TextView amountTv = alertView.findViewById(R.id.alertAmount);
+        TextView contentTv = alertView.findViewById(R.id.alertContent);
+        amountTv.setText(String.format("+%,d đ", amount));
+        contentTv.setText(content);
+        alertView.setAlpha(Prefs.alertOpacity(this) / 100f);
+
+        int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                : WindowManager.LayoutParams.TYPE_PHONE;
+        WindowManager.LayoutParams alertParams = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
+                type,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                PixelFormat.TRANSLUCENT);
+        alertParams.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+        alertParams.y = 60;
+
+        final View toRemove = alertView;
+        wm.addView(alertView, alertParams);
+        handler.postDelayed(() -> {
+            if (toRemove.getWindowToken() != null) {
+                try { wm.removeView(toRemove); } catch (Exception ignored) {}
+            }
+            if (alertView == toRemove) alertView = null;
+        }, 4000);
     }
 
     private void startForegroundWithNotification() {
@@ -137,6 +193,9 @@ public class FloatingReportService extends Service {
         running = false;
         instance = null;
         handler.removeCallbacks(poller);
+        if (alertView != null) {
+            try { wm.removeView(alertView); } catch (Exception ignored) {}
+        }
         if (wm != null && floatView != null) wm.removeView(floatView);
     }
 }

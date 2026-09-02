@@ -17,13 +17,13 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.Toast;
+import android.widget.TextView;
 
-/** Floating menu #2: nhập nội dung tự do (KHÔNG sinh mã ngẫu nhiên) -> gọi
- * /order -> hiện QR VietQR động ngay trên menu. Khi có ai chuyển khoản
- * đúng nội dung này, giao dịch sẽ tự xuất hiện bên menu Báo cáo. */
+/** Floating menu #2: QR TĨNH của tài khoản — KHÔNG addInfo, KHÔNG mã cố
+ * định. Ai quét cũng ra đúng QR này, tự nhập nội dung/ghi chú trong app
+ * ngân hàng của họ. Bảng Báo cáo (FloatingReportService) sẽ tự hiện đúng
+ * số tiền + nội dung họ gõ, không cần app này biết trước nội dung là gì. */
 public class FloatingQRService extends Service {
 
     private static boolean running = false;
@@ -33,13 +33,17 @@ public class FloatingQRService extends Service {
     private View floatView;
     private WindowManager.LayoutParams params;
     private ImageView qrImage;
-    private EditText contentEdit;
+    private TextView statusText;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     public static boolean isRunning() { return running; }
 
     public static void updateSize(Context ctx) {
         if (instance != null) instance.applySize();
+    }
+
+    public static void updateOpacity(Context ctx) {
+        if (instance != null) instance.applyOpacity();
     }
 
     @Override
@@ -51,8 +55,8 @@ public class FloatingQRService extends Service {
 
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         floatView = LayoutInflater.from(this).inflate(R.layout.floating_qr, null);
-        contentEdit = floatView.findViewById(R.id.editContent);
         qrImage = floatView.findViewById(R.id.imageQr);
+        statusText = floatView.findViewById(R.id.textQrStatus);
 
         int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -69,38 +73,37 @@ public class FloatingQRService extends Service {
 
         floatView.findViewById(R.id.dragHandleQr)
                 .setOnTouchListener(new DragTouchListener(params, wm, floatView));
-        floatView.findViewById(R.id.btnGenerateQr).setOnClickListener(v -> generate());
 
+        applyOpacity();
         wm.addView(floatView, params);
+        loadStaticQr();
     }
 
-    private void generate() {
-        String content = contentEdit.getText().toString().trim();
-        if (content.isEmpty()) {
-            Toast.makeText(this, "Nhập nội dung trước đã", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        ApiClient.createOrder(this, content, new ApiClient.Callback<String>() {
+    private void loadStaticQr() {
+        statusText.setText("Đang tải QR...");
+        ApiClient.getConfig(this, new ApiClient.Callback<ApiClient.BankConfig>() {
             @Override
-            public void onSuccess(String qrUrl) {
-                ApiClient.downloadBitmap(qrUrl, new ApiClient.Callback<Bitmap>() {
+            public void onSuccess(ApiClient.BankConfig cfg) {
+                String url = ApiClient.buildStaticQrUrl(cfg);
+                ApiClient.downloadBitmap(url, new ApiClient.Callback<Bitmap>() {
                     @Override
                     public void onSuccess(Bitmap result) {
-                        handler.post(() -> qrImage.setImageBitmap(result));
+                        handler.post(() -> {
+                            qrImage.setImageBitmap(result);
+                            statusText.setText("Quét QR rồi tự ghi nội dung trong app ngân hàng");
+                        });
                     }
 
                     @Override
                     public void onError(String message) {
-                        handler.post(() -> Toast.makeText(FloatingQRService.this,
-                                "Lỗi tải QR: " + message, Toast.LENGTH_SHORT).show());
+                        handler.post(() -> statusText.setText("Lỗi tải QR: " + message));
                     }
                 });
             }
 
             @Override
             public void onError(String message) {
-                handler.post(() -> Toast.makeText(FloatingQRService.this,
-                        "Lỗi tạo đơn: " + message, Toast.LENGTH_SHORT).show());
+                handler.post(() -> statusText.setText("Lỗi lấy cấu hình: " + message));
             }
         });
     }
@@ -109,6 +112,11 @@ public class FloatingQRService extends Service {
         if (params == null || floatView == null) return;
         params.width = dp(Prefs.qrSizeDp(this));
         wm.updateViewLayout(floatView, params);
+    }
+
+    private void applyOpacity() {
+        if (floatView == null) return;
+        floatView.setAlpha(Prefs.qrOpacity(this) / 100f);
     }
 
     private int dp(int v) {
@@ -124,7 +132,7 @@ public class FloatingQRService extends Service {
             nm.createNotificationChannel(channel);
         }
         Notification notification = new Notification.Builder(this, channelId)
-                .setContentTitle("Menu tạo QR đang bật")
+                .setContentTitle("Menu QR đang bật")
                 .setSmallIcon(android.R.drawable.stat_notify_sync)
                 .build();
         startForeground(2002, notification);

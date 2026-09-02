@@ -14,31 +14,6 @@
         android:textColor="#FFFFFF"
         android:textSize="12sp" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="8dp">
-
-        <EditText
-            android:id="@+id/editContent"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="Nội dung..."
-            android:textColorHint="#AAAAAA"
-            android:textColor="#FFFFFF"
-            android:inputType="text"
-            android:maxLines="1" />
-
-        <Button
-            android:id="@+id/btnGenerateQr"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Tạo QR"
-            android:textSize="11sp" />
-    </LinearLayout>
-
     <ImageView
         android:id="@+id/imageQr"
         android:layout_width="match_parent"
@@ -47,5 +22,15 @@
         android:layout_margin="8dp"
         android:adjustViewBounds="true"
         android:scaleType="fitCenter" />
+
+    <TextView
+        android:id="@+id/textQrStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="6dp"
+        android:gravity="center"
+        android:textColor="#CCCCCC"
+        android:textSize="10sp"
+        android:text="Đang tải QR..." />
 
 </LinearLayout>

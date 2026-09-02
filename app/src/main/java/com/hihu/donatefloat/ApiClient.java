@@ -72,9 +72,13 @@ public class ApiClient {
     }
 
     public static void getTransactions(Context ctx, int sinceId, Callback<Transaction[]> cb) {
+        getTransactions(ctx, sinceId, 50, cb);
+    }
+
+    public static void getTransactions(Context ctx, int sinceId, int limit, Callback<Transaction[]> cb) {
         new Thread(() -> {
             try {
-                HttpURLConnection conn = open(ctx, "/transactions?since_id=" + sinceId, "GET");
+                HttpURLConnection conn = open(ctx, "/transactions?since_id=" + sinceId + "&limit=" + limit, "GET");
                 int code = conn.getResponseCode();
                 InputStream in = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
                 String body = readAll(in);
@@ -93,6 +97,72 @@ public class ApiClient {
                         result[i] = tx;
                     }
                     cb.onSuccess(result);
+                } else {
+                    cb.onError("Lỗi server (" + code + "): " + body);
+                }
+            } catch (Exception e) {
+                cb.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+    public static class BankConfig {
+        public String bankBin;
+        public String accountNo;
+        public String template;
+    }
+
+    public static void getConfig(Context ctx, Callback<BankConfig> cb) {
+        new Thread(() -> {
+            try {
+                HttpURLConnection conn = open(ctx, "/config", "GET");
+                int code = conn.getResponseCode();
+                InputStream in = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
+                String body = readAll(in);
+                if (code >= 200 && code < 300) {
+                    JSONObject obj = new JSONObject(body);
+                    BankConfig cfg = new BankConfig();
+                    cfg.bankBin = obj.getString("bank_bin");
+                    cfg.accountNo = obj.getString("account_no");
+                    cfg.template = obj.getString("template");
+                    cb.onSuccess(cfg);
+                } else {
+                    cb.onError("Lỗi server (" + code + "): " + body);
+                }
+            } catch (Exception e) {
+                cb.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+    /** Build link QR TĨNH — không addInfo, không số tiền. Người quét tự
+     * nhập nội dung trong app ngân hàng của họ. */
+    public static String buildStaticQrUrl(BankConfig cfg) {
+        return "https://api.vietqr.io/image/" + cfg.bankBin + "-" + cfg.accountNo + "-" + cfg.template + ".jpg";
+    }
+
+    public static class Stats {
+        public String period;
+        public String label;
+        public long total;
+        public int count;
+    }
+
+    public static void getStats(Context ctx, String period, Callback<Stats> cb) {
+        new Thread(() -> {
+            try {
+                HttpURLConnection conn = open(ctx, "/stats?period=" + period, "GET");
+                int code = conn.getResponseCode();
+                InputStream in = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
+                String body = readAll(in);
+                if (code >= 200 && code < 300) {
+                    JSONObject obj = new JSONObject(body);
+                    Stats s = new Stats();
+                    s.period = obj.getString("period");
+                    s.label = obj.getString("label");
+                    s.total = obj.getLong("total");
+                    s.count = obj.getInt("count");
+                    cb.onSuccess(s);
                 } else {
                     cb.onError("Lỗi server (" + code + "): " + body);
                 }

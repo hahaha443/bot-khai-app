@@ -35,57 +35,51 @@
             android:layout_height="wrap_content"
             android:text="Lưu cấu hình" />
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
-            android:background="#33000000" />
+        <View style="@style/DividerLine" />
 
         <TextView
             android:id="@+id/textStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="4dp" />
 
-        <Button
-            android:id="@+id/btnGrantOverlay"
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:textColor="#888888"
+            android:text="Quyền hiển thị nổi/thông báo tự kiểm tra và tự dẫn tới màn cấp quyền khi mở app, không cần bấm gì." />
+
+        <View style="@style/DividerLine" />
+
+        <CheckBox
+            android:id="@+id/checkAutoStart"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Cấp quyền hiển thị nổi" />
-
-        <Button
-            android:id="@+id/btnGrantNotif"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Cấp quyền thông báo" />
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
-            android:background="#33000000" />
+            android:text="Tự bật cả 2 menu khi mở app" />
 
         <Button
             android:id="@+id/btnToggleReport"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:text="Bật / tắt menu Báo cáo" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Kích thước menu Báo cáo" />
-
+        <TextView style="@style/SliderLabel" android:text="Kích thước menu Báo cáo" />
         <SeekBar
             android:id="@+id/seekReportSize"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:max="500"
             android:min="150" />
+
+        <TextView style="@style/SliderLabel" android:text="Độ mờ bảng Báo cáo" />
+        <SeekBar
+            android:id="@+id/seekReportOpacity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:min="20" />
 
         <Button
             android:id="@+id/btnToggleQR"
@@ -94,18 +88,64 @@
             android:layout_marginTop="16dp"
             android:text="Bật / tắt menu QR" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Kích thước menu QR" />
-
+        <TextView style="@style/SliderLabel" android:text="Kích thước menu QR" />
         <SeekBar
             android:id="@+id/seekQrSize"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:max="500"
             android:min="150" />
+
+        <TextView style="@style/SliderLabel" android:text="Độ mờ bảng QR" />
+        <SeekBar
+            android:id="@+id/seekQrOpacity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:min="20" />
+
+        <TextView style="@style/SliderLabel" android:text="Độ mờ popup thông báo giao dịch mới" />
+        <SeekBar
+            android:id="@+id/seekAlertOpacity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:min="20" />
+
+        <Button
+            android:id="@+id/btnDemo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:backgroundTint="#FF9800"
+            android:text="🧪 Xem thử (bơm dữ liệu demo để canh chỉnh)" />
+
+        <View style="@style/DividerLine" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Thống kê"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView android:id="@+id/textStatToday" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="13sp" android:paddingBottom="2dp" android:text="Hôm nay: —" />
+        <TextView android:id="@+id/textStatYesterday" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="13sp" android:paddingBottom="2dp" android:text="Hôm qua: —" />
+        <TextView android:id="@+id/textStatBeforeYesterday" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="13sp" android:paddingBottom="8dp" android:text="Hôm kia: —" />
+
+        <Button
+            android:id="@+id/btnRefreshStats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Làm mới thống kê" />
+
+        <Button
+            android:id="@+id/btnHistory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="📜 Xem lịch sử giao dịch đầy đủ" />
 
     </LinearLayout>
 </ScrollView>
