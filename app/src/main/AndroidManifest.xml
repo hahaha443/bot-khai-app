@@ -12,6 +12,7 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.DonateFloat"
+        android:usesCleartextTraffic="true"
         android:supportsRtl="true">
 
         <activity
