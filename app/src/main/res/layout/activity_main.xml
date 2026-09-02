@@ -139,7 +139,32 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Menu Ghi chú nổi (menu rời #3)"
+            android:text="Màu chữ chung (Báo cáo / Ghi chú / Mục tiêu)"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="7">
+
+            <View android:id="@+id/colorWhite" style="@style/ColorSwatch" android:background="#FFFFFF" />
+            <View android:id="@+id/colorYellow" style="@style/ColorSwatch" android:background="#FFEB3B" />
+            <View android:id="@+id/colorCyan" style="@style/ColorSwatch" android:background="#00E5FF" />
+            <View android:id="@+id/colorGreen" style="@style/ColorSwatch" android:background="#4CAF50" />
+            <View android:id="@+id/colorPink" style="@style/ColorSwatch" android:background="#FF4081" />
+            <View android:id="@+id/colorOrange" style="@style/ColorSwatch" android:background="#FF9800" />
+            <View android:id="@+id/colorRed" style="@style/ColorSwatch" android:background="#F44336" />
+        </LinearLayout>
+
+        <View style="@style/DividerLine" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Menu Ghi chú nổi (menu rời #3 — thêm được nhiều cái)"
             android:textStyle="bold"
             android:textSize="16sp"
             android:layout_marginBottom="8dp" />
@@ -148,24 +173,31 @@
             android:id="@+id/editNoteText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Nội dung muốn hiện nổi trên màn hình..."
+            android:hint="Nội dung ghi chú mới..."
             android:minLines="2"
             android:gravity="top" />
 
         <Button
-            android:id="@+id/btnSaveNote"
+            android:id="@+id/btnAddNote"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Lưu nội dung ghi chú" />
+            android:text="+ Thêm ghi chú mới" />
+
+        <LinearLayout
+            android:id="@+id/noteListContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="8dp" />
 
         <Button
             android:id="@+id/btnToggleNote"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Bật / tắt menu Ghi chú" />
+            android:text="Bật / tắt tất cả menu Ghi chú" />
 
-        <TextView style="@style/SliderLabel" android:text="Kích thước menu Ghi chú (hoặc kéo góc bất kỳ trên menu)" />
+        <TextView style="@style/SliderLabel" android:text="Kích thước mỗi ghi chú (hoặc kéo góc trên menu)" />
         <SeekBar
             android:id="@+id/seekNoteSize"
             android:layout_width="match_parent"
@@ -176,6 +208,58 @@
         <TextView style="@style/SliderLabel" android:text="Độ mờ menu Ghi chú" />
         <SeekBar
             android:id="@+id/seekNoteOpacity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:min="0" />
+
+        <View style="@style/DividerLine" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Menu Thanh đo mục tiêu (menu rời #4)"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/editGoalTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Tiêu đề (vd: Mục tiêu donate hôm nay)" />
+
+        <EditText
+            android:id="@+id/editGoalAmount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Số tiền mục tiêu (vd: 5000000)"
+            android:inputType="number" />
+
+        <Button
+            android:id="@+id/btnSaveGoal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Lưu mục tiêu" />
+
+        <Button
+            android:id="@+id/btnToggleGoal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Bật / tắt menu Thanh đo mục tiêu" />
+
+        <TextView style="@style/SliderLabel" android:text="Kích thước menu Mục tiêu (hoặc kéo góc trên menu)" />
+        <SeekBar
+            android:id="@+id/seekGoalSize"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="600"
+            android:min="80" />
+
+        <TextView style="@style/SliderLabel" android:text="Độ mờ menu Mục tiêu" />
+        <SeekBar
+            android:id="@+id/seekGoalOpacity"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:max="100"

@@ -55,5 +55,14 @@
                 android:value="donate_note_overlay" />
         </service>
 
+        <service
+            android:name=".FloatingGoalService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="donate_goal_overlay" />
+        </service>
+
     </application>
 </manifest>

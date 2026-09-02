@@ -8,11 +8,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -136,14 +139,24 @@ public class MainActivity extends AppCompatActivity {
         // ─── Thống kê ───
         findViewById(R.id.btnRefreshStats).setOnClickListener(v -> refreshStats());
 
-        // ─── Menu Ghi chú (menu rời #3) ───
-        EditText noteEdit = findViewById(R.id.editNoteText);
-        noteEdit.setText(Prefs.noteText(this));
+        // ─── Màu chữ ───
+        wireColorSwatch(R.id.colorWhite, 0xFFFFFFFF);
+        wireColorSwatch(R.id.colorYellow, 0xFFFFEB3B);
+        wireColorSwatch(R.id.colorCyan, 0xFF00E5FF);
+        wireColorSwatch(R.id.colorGreen, 0xFF4CAF50);
+        wireColorSwatch(R.id.colorPink, 0xFFFF4081);
+        wireColorSwatch(R.id.colorOrange, 0xFFFF9800);
+        wireColorSwatch(R.id.colorRed, 0xFFF44336);
 
-        findViewById(R.id.btnSaveNote).setOnClickListener(v -> {
-            Prefs.setNoteText(this, noteEdit.getText().toString());
-            FloatingNoteService.updateText(this);
-            Toast.makeText(this, "Đã lưu nội dung ghi chú", Toast.LENGTH_SHORT).show();
+        // ─── Menu Ghi chú (menu rời #3, nhiều ghi chú) ───
+        findViewById(R.id.btnAddNote).setOnClickListener(v -> {
+            EditText noteEdit = findViewById(R.id.editNoteText);
+            String text = noteEdit.getText().toString().trim();
+            if (text.isEmpty()) return;
+            addNoteToList(text);
+            noteEdit.setText("");
+            renderNoteList();
+            FloatingNoteService.rebuild(this);
         });
 
         findViewById(R.id.btnToggleNote).setOnClickListener(v -> {
@@ -167,6 +180,46 @@ public class MainActivity extends AppCompatActivity {
         noteOpacity.setOnSeekBarChangeListener(new SimpleSeek(v -> {
             Prefs.setNoteOpacity(this, v);
             FloatingNoteService.updateOpacity(this);
+        }));
+
+        renderNoteList();
+
+        // ─── Menu Thanh đo mục tiêu (menu rời #4) ───
+        EditText goalTitleEdit = findViewById(R.id.editGoalTitle);
+        EditText goalAmountEdit = findViewById(R.id.editGoalAmount);
+        goalTitleEdit.setText(Prefs.goalTitle(this));
+        goalAmountEdit.setText(String.valueOf(Prefs.goalAmount(this)));
+
+        findViewById(R.id.btnSaveGoal).setOnClickListener(v -> {
+            Prefs.setGoalTitle(this, goalTitleEdit.getText().toString().trim());
+            try {
+                Prefs.setGoalAmount(this, Long.parseLong(goalAmountEdit.getText().toString().trim()));
+            } catch (NumberFormatException ignored) {}
+            FloatingGoalService.updateConfig(this);
+            Toast.makeText(this, "Đã lưu mục tiêu", Toast.LENGTH_SHORT).show();
+        });
+
+        findViewById(R.id.btnToggleGoal).setOnClickListener(v -> {
+            if (!canDrawOverlays()) {
+                Toast.makeText(this, "Chưa cấp quyền hiển thị nổi", Toast.LENGTH_SHORT).show();
+                checkAndRequestOverlay();
+                return;
+            }
+            toggleService(FloatingGoalService.class, FloatingGoalService.isRunning());
+        });
+
+        SeekBar goalSize = findViewById(R.id.seekGoalSize);
+        goalSize.setProgress(Prefs.goalSizeDp(this));
+        goalSize.setOnSeekBarChangeListener(new SimpleSeek(v -> {
+            Prefs.setGoalSizeDp(this, Math.max(v, 80));
+            FloatingGoalService.updateSize(this);
+        }));
+
+        SeekBar goalOpacity = findViewById(R.id.seekGoalOpacity);
+        goalOpacity.setProgress(Prefs.goalOpacity(this));
+        goalOpacity.setOnSeekBarChangeListener(new SimpleSeek(v -> {
+            Prefs.setGoalOpacity(this, v);
+            FloatingGoalService.updateOpacity(this);
         }));
 
         // ─── Lịch sử ───
@@ -193,6 +246,9 @@ public class MainActivity extends AppCompatActivity {
             }
             if (!FloatingNoteService.isRunning()) {
                 ContextCompat.startForegroundService(this, new Intent(this, FloatingNoteService.class));
+            }
+            if (!FloatingGoalService.isRunning()) {
+                ContextCompat.startForegroundService(this, new Intent(this, FloatingGoalService.class));
             }
         }
     }
@@ -258,6 +314,83 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    private void wireColorSwatch(int viewId, int color) {
+        View v = findViewById(viewId);
+        v.setOnClickListener(x -> {
+            Prefs.setTextColor(this, color);
+            FloatingReportService.updateTextColor(this);
+            FloatingNoteService.updateTextColor(this);
+            FloatingGoalService.updateConfig(this);
+        });
+    }
+
+    /** Ghi chú lưu dạng JSON [{id,text}] trong Prefs — dùng org.json có sẵn. */
+    private org.json.JSONArray loadNotesJson() {
+        try {
+            return new org.json.JSONArray(Prefs.notesListRaw(this));
+        } catch (Exception e) {
+            return new org.json.JSONArray();
+        }
+    }
+
+    private void addNoteToList(String text) {
+        org.json.JSONArray arr = loadNotesJson();
+        try {
+            org.json.JSONObject o = new org.json.JSONObject();
+            o.put("id", String.valueOf(System.currentTimeMillis()));
+            o.put("text", text);
+            arr.put(o);
+            Prefs.setNotesListRaw(this, arr.toString());
+        } catch (Exception ignored) {}
+    }
+
+    private void removeNoteFromList(String id) {
+        org.json.JSONArray arr = loadNotesJson();
+        org.json.JSONArray result = new org.json.JSONArray();
+        for (int i = 0; i < arr.length(); i++) {
+            try {
+                org.json.JSONObject o = arr.getJSONObject(i);
+                if (!o.getString("id").equals(id)) result.put(o);
+            } catch (Exception ignored) {}
+        }
+        Prefs.setNotesListRaw(this, result.toString());
+    }
+
+    private void renderNoteList() {
+        LinearLayout container = findViewById(R.id.noteListContainer);
+        container.removeAllViews();
+        org.json.JSONArray arr = loadNotesJson();
+        for (int i = 0; i < arr.length(); i++) {
+            try {
+                org.json.JSONObject o = arr.getJSONObject(i);
+                String id = o.getString("id");
+                String text = o.getString("text");
+
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setPadding(0, 8, 0, 8);
+
+                TextView tv = new TextView(this);
+                tv.setText(text);
+                tv.setTextSize(12);
+                tv.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+
+                Button del = new Button(this);
+                del.setText("Xoá");
+                del.setTextSize(10);
+                del.setOnClickListener(v -> {
+                    removeNoteFromList(id);
+                    renderNoteList();
+                    FloatingNoteService.rebuild(this);
+                });
+
+                row.addView(tv);
+                row.addView(del);
+                container.addView(row);
+            } catch (Exception ignored) {}
+        }
     }
 
     private interface OnValue {

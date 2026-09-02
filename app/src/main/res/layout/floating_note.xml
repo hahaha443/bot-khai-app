@@ -3,21 +3,15 @@
     android:layout_height="wrap_content">
 
     <LinearLayout
-        android:id="@+id/notePanel"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:background="@drawable/bg_floating">
 
-        <TextView
+        <View
             android:id="@+id/dragHandleNote"
             android:layout_width="match_parent"
-            android:layout_height="24dp"
-            android:background="@drawable/bg_drag_handle_neutral"
-            android:gravity="center"
-            android:text="≡  Ghi chú"
-            android:textColor="#FFFFFF"
-            android:textSize="11sp" />
+            android:layout_height="14dp" />
 
         <ScrollView
             android:layout_width="match_parent"

@@ -78,7 +78,7 @@ public class FloatingQRService extends Service {
         params.y = 340;
 
         floatView.findViewById(R.id.dragHandleQr)
-                .setOnTouchListener(new DragTouchListener(params, wm, floatView));
+                .setOnTouchListener(new DragTouchListener(params, wm, floatView, () -> LockManager.setLocked(this, true)));
 
         wireCornerResize();
 
@@ -117,9 +117,13 @@ public class FloatingQRService extends Service {
                     @Override
                     public void onSuccess(Bitmap result) {
                         handler.post(() -> {
+                            // Giải phóng bitmap cũ trước khi gán bitmap mới — tránh rò rỉ RAM
+                            Object old = qrImage.getDrawable();
+                            if (old instanceof android.graphics.drawable.BitmapDrawable) {
+                                Bitmap oldBmp = ((android.graphics.drawable.BitmapDrawable) old).getBitmap();
+                                if (oldBmp != null && oldBmp != result && !oldBmp.isRecycled()) oldBmp.recycle();
+                            }
                             qrImage.setImageBitmap(result);
-                            // Ẩn dòng chữ trạng thái đi để ảnh QR chiếm hết diện tích còn lại —
-                            // đặc biệt quan trọng khi thu nhỏ cả bảng, QR vẫn to tối đa.
                             statusText.setVisibility(View.GONE);
                         });
                     }

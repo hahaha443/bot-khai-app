@@ -116,13 +116,13 @@ public class Prefs {
         sp(ctx).edit().putBoolean("auto_start_menus", v).apply();
     }
 
-    // ─── Menu Ghi chú nổi (menu rời thứ 3) ───
-    public static String noteText(Context ctx) {
-        return sp(ctx).getString("note_text", "Mục tiêu donate hôm nay: 500k 🎯");
+    // ─── Menu Ghi chú nổi (menu rời #3, hỗ trợ NHIỀU ghi chú cùng lúc) ───
+    public static String notesListRaw(Context ctx) {
+        return sp(ctx).getString("notes_list", "[]");
     }
 
-    public static void setNoteText(Context ctx, String v) {
-        sp(ctx).edit().putString("note_text", v).apply();
+    public static void setNotesListRaw(Context ctx, String jsonArray) {
+        sp(ctx).edit().putString("notes_list", jsonArray).apply();
     }
 
     public static int noteSizeDp(Context ctx) {
@@ -147,5 +147,55 @@ public class Prefs {
 
     public static void setNoteOpacity(Context ctx, int v) {
         sp(ctx).edit().putInt("note_opacity", v).apply();
+    }
+
+    // ─── Màu chữ chung (áp cho Báo cáo, Ghi chú, thanh đo mục tiêu) ───
+    public static int textColor(Context ctx) {
+        return sp(ctx).getInt("text_color", 0xFFFFFFFF);
+    }
+
+    public static void setTextColor(Context ctx, int v) {
+        sp(ctx).edit().putInt("text_color", v).apply();
+    }
+
+    // ─── Menu #4: thanh đo mục tiêu donate ───
+    public static String goalTitle(Context ctx) {
+        return sp(ctx).getString("goal_title", "Mục tiêu donate hôm nay");
+    }
+
+    public static void setGoalTitle(Context ctx, String v) {
+        sp(ctx).edit().putString("goal_title", v).apply();
+    }
+
+    public static long goalAmount(Context ctx) {
+        return sp(ctx).getLong("goal_amount", 5_000_000L);
+    }
+
+    public static void setGoalAmount(Context ctx, long v) {
+        sp(ctx).edit().putLong("goal_amount", v).apply();
+    }
+
+    public static int goalSizeDp(Context ctx) {
+        return sp(ctx).getInt("goal_size_dp", 300);
+    }
+
+    public static void setGoalSizeDp(Context ctx, int v) {
+        sp(ctx).edit().putInt("goal_size_dp", v).apply();
+    }
+
+    public static int goalHeightDp(Context ctx) {
+        return sp(ctx).getInt("goal_height_dp", 110);
+    }
+
+    public static void setGoalHeightDp(Context ctx, int v) {
+        sp(ctx).edit().putInt("goal_height_dp", v).apply();
+    }
+
+    public static int goalOpacity(Context ctx) {
+        return sp(ctx).getInt("goal_opacity", 90);
+    }
+
+    public static void setGoalOpacity(Context ctx, int v) {
+        sp(ctx).edit().putInt("goal_opacity", v).apply();
     }
 }

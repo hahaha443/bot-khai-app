@@ -63,14 +63,7 @@ public final class LockBubble {
         lp.x = 12;
         lp.y = 180;
 
-        bubble.setOnClickListener(v -> {
-            boolean newLocked = !Prefs.locked(ctx);
-            Prefs.setLocked(ctx, newLocked);
-            bubble.setText(newLocked ? "🔒" : "🔓");
-            FloatingReportService.updateLocked(ctx);
-            FloatingQRService.updateLocked(ctx);
-            FloatingNoteService.updateLocked(ctx);
-        });
+        bubble.setOnClickListener(v -> LockManager.toggle(ctx));
 
         try {
             wm.addView(bubble, lp);

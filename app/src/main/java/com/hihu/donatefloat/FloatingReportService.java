@@ -56,6 +56,10 @@ public class FloatingReportService extends Service {
         if (instance != null) instance.applyContentOpacity();
     }
 
+    public static void updateTextColor(Context ctx) {
+        if (instance != null) instance.applyContentOpacity();
+    }
+
     public static void updateLocked(Context ctx) {
         if (instance != null) instance.applyLocked();
     }
@@ -92,7 +96,7 @@ public class FloatingReportService extends Service {
         params.y = 100;
 
         floatView.findViewById(R.id.dragHandleReport)
-                .setOnTouchListener(new DragTouchListener(params, wm, floatView));
+                .setOnTouchListener(new DragTouchListener(params, wm, floatView, () -> LockManager.setLocked(this, true)));
 
         wireCornerResize();
 
@@ -156,10 +160,8 @@ public class FloatingReportService extends Service {
             params.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
         }
         wm.updateViewLayout(floatView, params);
-        TextView handle = floatView.findViewById(R.id.dragHandleReport);
-        if (handle != null) {
-            handle.setText(locked ? "🔒 (đã khoá)" : "≡  Báo cáo giao dịch");
-        }
+        // Không còn thanh tiêu đề hiển thị chữ nữa — trạng thái khoá chỉ còn
+        // thể hiện qua nút 🔒/🔓 ở góc màn hình.
     }
 
     private int dp(int v) {
@@ -204,7 +206,7 @@ public class FloatingReportService extends Service {
     private void addRow(long amount, String description) {
         TextView tv = new TextView(this);
         tv.setText(String.format("+%,d đ\n%s", amount, description));
-        tv.setTextColor(0xFFFFFFFF);
+        tv.setTextColor(Prefs.textColor(this));
         tv.setTextSize(12);
         tv.setPadding(dp(6), dp(4), dp(6), dp(4));
         tv.setAlpha(Prefs.reportContentOpacity(this) / 100f);

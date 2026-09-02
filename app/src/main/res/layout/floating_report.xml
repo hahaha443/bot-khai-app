@@ -9,15 +9,10 @@
         android:orientation="vertical"
         android:background="@drawable/bg_floating">
 
-        <TextView
+        <View
             android:id="@+id/dragHandleReport"
             android:layout_width="match_parent"
-            android:layout_height="24dp"
-            android:background="@drawable/bg_drag_handle_neutral"
-            android:gravity="center"
-            android:text="≡  Báo cáo giao dịch"
-            android:textColor="#FFFFFF"
-            android:textSize="11sp" />
+            android:layout_height="14dp" />
 
         <ScrollView
             android:layout_width="match_parent"
@@ -33,7 +28,6 @@
         </ScrollView>
     </LinearLayout>
 
-    <!-- 4 vùng chạm trong suốt ở 4 góc — kéo góc nào cũng resize được, không hiện icon gì -->
     <View android:id="@+id/resizeReportTL" android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="top|start" />
     <View android:id="@+id/resizeReportTR" android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="top|end" />
     <View android:id="@+id/resizeReportBL" android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="bottom|start" />

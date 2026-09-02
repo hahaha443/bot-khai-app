@@ -8,15 +8,10 @@
         android:orientation="vertical"
         android:background="@drawable/bg_floating">
 
-        <TextView
+        <View
             android:id="@+id/dragHandleQr"
             android:layout_width="match_parent"
-            android:layout_height="22dp"
-            android:background="@drawable/bg_drag_handle"
-            android:gravity="center"
-            android:text="≡ QR"
-            android:textColor="#FFFFFF"
-            android:textSize="10sp" />
+            android:layout_height="12dp" />
 
         <ImageView
             android:id="@+id/imageQr"
@@ -38,7 +33,6 @@
             android:text="Đang tải QR..." />
     </LinearLayout>
 
-    <!-- 4 vùng chạm trong suốt ở 4 góc — kéo góc nào cũng resize được, không hiện icon gì -->
     <View android:id="@+id/resizeQrTL" android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="top|start" />
     <View android:id="@+id/resizeQrTR" android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="top|end" />
     <View android:id="@+id/resizeQrBL" android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="bottom|start" />
