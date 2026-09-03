@@ -38,6 +38,12 @@ public class FloatingGoalService extends Service {
 
     public static boolean isRunning() { return running; }
 
+    public static void setHidden(boolean hidden) {
+        if (instance != null && instance.floatView != null) {
+            instance.floatView.setVisibility(hidden ? View.GONE : View.VISIBLE);
+        }
+    }
+
     public static void updateSize(Context ctx) {
         if (instance != null) instance.applySize();
     }
@@ -85,6 +91,7 @@ public class FloatingGoalService extends Service {
         applyConfig();
         applyOpacity();
         wm.addView(floatView, params);
+        if (Prefs.overlaysHidden(this)) floatView.setVisibility(View.GONE);
 
         View dragHandleGoal = floatView.findViewById(R.id.dragHandleGoal);
         dragHandleGoal.setOnTouchListener(new DragLockListener(this, params, wm, floatView, "goal"));

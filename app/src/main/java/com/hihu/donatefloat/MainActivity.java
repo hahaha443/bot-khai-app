@@ -211,8 +211,26 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btnHistory).setOnClickListener(v ->
                 startActivity(new Intent(this, TransactionHistoryActivity.class)));
 
+        // ─── Ẩn/hiện tạm tất cả menu nổi (dùng khi share màn hình) ───
+        Button btnHideAll = findViewById(R.id.btnHideAllOverlays);
+        updateHideAllLabel(btnHideAll);
+        btnHideAll.setOnClickListener(v -> {
+            boolean newHidden = !Prefs.overlaysHidden(this);
+            Prefs.setOverlaysHidden(this, newHidden);
+            FloatingReportService.setHidden(newHidden);
+            FloatingQRService.setHidden(newHidden);
+            FloatingNoteService.setHidden(newHidden);
+            FloatingGoalService.setHidden(newHidden);
+            updateHideAllLabel(btnHideAll);
+        });
+
         refreshStatus();
         refreshStats();
+    }
+
+    private void updateHideAllLabel(Button btn) {
+        boolean hidden = Prefs.overlaysHidden(this);
+        btn.setText(hidden ? "👁  Hiện lại tất cả menu" : "🙈  Ẩn tạm tất cả menu (share màn hình)");
     }
 
     @Override
@@ -472,11 +490,14 @@ public class MainActivity extends AppCompatActivity {
                 TextView tv = new TextView(this);
                 tv.setText(text);
                 tv.setTextSize(12);
+                tv.setTextColor(0xFFF5F6FA);
                 tv.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
                 Button del = new Button(this);
                 del.setText("Xoá");
                 del.setTextSize(10);
+                del.setTextColor(0xFFFFFFFF);
+                del.setBackgroundResource(R.drawable.bg_btn_warn_small);
                 del.setOnClickListener(v -> {
                     removeNoteFromList(id);
                     renderNoteList();

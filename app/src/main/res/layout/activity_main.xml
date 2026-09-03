@@ -45,6 +45,23 @@
             android:paddingStart="16dp"
             android:paddingEnd="16dp">
 
+            <!-- Ẩn/hiện tạm tất cả -->
+            <LinearLayout style="@style/SectionCard">
+                <TextView style="@style/SectionTitle" android:text="🙈  Ẩn nhanh khi share màn hình" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_hint"
+                    android:layout_marginBottom="8dp"
+                    android:text="Ẩn tạm toàn bộ menu nổi (không tắt hẳn, giữ nguyên vị trí/cấu hình) — bật lại chỉ 1 chạm." />
+                <Button
+                    android:id="@+id/btnHideAllOverlays"
+                    style="@style/BtnFlat"
+                    android:layout_marginTop="0dp"
+                    android:text="🙈  Ẩn tạm tất cả menu" />
+            </LinearLayout>
+
             <!-- Cấu hình server -->
             <LinearLayout style="@style/SectionCard">
                 <TextView style="@style/SectionTitle" android:text="🌐  Cấu hình server" />

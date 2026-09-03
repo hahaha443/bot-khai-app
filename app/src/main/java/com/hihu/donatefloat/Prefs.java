@@ -116,6 +116,15 @@ public class Prefs {
         sp(ctx).edit().putBoolean("auto_start_menus", v).apply();
     }
 
+    // ─── Ẩn tạm tất cả overlay (không tắt hẳn), dùng khi share màn hình ───
+    public static boolean overlaysHidden(Context ctx) {
+        return sp(ctx).getBoolean("overlays_hidden", false);
+    }
+
+    public static void setOverlaysHidden(Context ctx, boolean v) {
+        sp(ctx).edit().putBoolean("overlays_hidden", v).apply();
+    }
+
     // ─── Menu Ghi chú nổi (menu rời #3, hỗ trợ NHIỀU ghi chú cùng lúc) ───
     public static String notesListRaw(Context ctx) {
         return sp(ctx).getString("notes_list", "[]");

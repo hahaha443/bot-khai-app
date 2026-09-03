@@ -35,6 +35,12 @@ public class FloatingNoteService extends Service {
 
     public static boolean isRunning() { return running; }
 
+    public static void setHidden(boolean hidden) {
+        if (instance != null) {
+            for (View v : instance.windows) v.setVisibility(hidden ? View.GONE : View.VISIBLE);
+        }
+    }
+
     public static void updateSize(Context ctx) {
         if (instance != null) instance.applyAllSize();
     }
@@ -108,6 +114,7 @@ public class FloatingNoteService extends Service {
             return;
         }
         windows.add(floatView);
+        if (Prefs.overlaysHidden(this)) floatView.setVisibility(View.GONE);
 
         String lockKey = "note_" + id;
         View dragHandleNote = floatView.findViewById(R.id.dragHandleNote);

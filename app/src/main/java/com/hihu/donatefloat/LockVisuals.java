@@ -1,33 +1,31 @@
 package com.hihu.donatefloat;
 
 import android.content.Context;
-import android.view.View;
-import android.view.animation.OvershootInterpolator;
+import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 
-/** Cập nhật màu/hiệu ứng thanh kéo (drag handle) theo trạng thái khoá của
- * panel, để người dùng thấy ngay panel đang khoá hay không mà không cần
- * đoán. Gọi applyState() ngay sau khi tạo view và mỗi khi TapLockListener
- * báo đã đổi trạng thái. */
+/** Phản hồi khi khoá/mở khoá một panel — CHỈ dùng rung nhẹ, không đổi
+ * màu/hiện icon gì trên màn hình, để tránh lộ cơ chế khi đang livestream
+ * hoặc chia sẻ màn hình. Người dùng cảm nhận qua tay cầm máy, người xem
+ * không thấy gì khác lạ. */
 public final class LockVisuals {
     private LockVisuals() {}
 
-    public static void applyState(View dragHandle, Context ctx, String lockKey) {
-        if (dragHandle == null) return;
-        boolean locked = Prefs.panelLocked(ctx, lockKey);
-        dragHandle.setBackgroundResource(locked ? R.drawable.bg_drag_handle_locked : R.drawable.bg_drag_handle);
-        dragHandle.setAlpha(locked ? 0.95f : 1f);
+    public static void applyState(android.view.View dragHandle, Context ctx, String lockKey) {
+        // Cố ý không đổi giao diện của dragHandle — khoá là thao tác ngầm.
     }
 
-    /** Hiệu ứng nảy nhẹ khi vừa chạm 3 lần để khoá/mở khoá, giúp thao tác
-     * có phản hồi rõ ràng thay vì đổi màu đột ngột không cảm giác. */
-    public static void bounce(View v) {
+    public static void bounce(android.view.View v) {
         if (v == null) return;
-        v.animate().cancel();
-        v.setScaleY(0.35f);
-        v.animate()
-                .scaleY(1f)
-                .setDuration(240)
-                .setInterpolator(new OvershootInterpolator(3.2f))
-                .start();
+        try {
+            Vibrator vib = (Vibrator) v.getContext().getSystemService(Context.VIBRATOR_SERVICE);
+            if (vib == null || !vib.hasVibrator()) return;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vib.vibrate(VibrationEffect.createOneShot(35, VibrationEffect.DEFAULT_AMPLITUDE));
+            } else {
+                vib.vibrate(35);
+            }
+        } catch (Exception ignored) {}
     }
 }

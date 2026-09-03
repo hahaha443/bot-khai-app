@@ -44,6 +44,12 @@ public class FloatingReportService extends Service {
 
     public static boolean isRunning() { return running; }
 
+    public static void setHidden(boolean hidden) {
+        if (instance != null && instance.floatView != null) {
+            instance.floatView.setVisibility(hidden ? View.GONE : View.VISIBLE);
+        }
+    }
+
     public static void updateSize(Context ctx) {
         if (instance != null) instance.applySize();
     }
@@ -91,6 +97,7 @@ public class FloatingReportService extends Service {
         wm.addView(floatView, params);
         applyBgOpacity();
         applyContentOpacity();
+        if (Prefs.overlaysHidden(this)) floatView.setVisibility(View.GONE);
 
         View dragHandleReport = floatView.findViewById(R.id.dragHandleReport);
         dragHandleReport.setOnTouchListener(new DragLockListener(this, params, wm, floatView, "report"));
