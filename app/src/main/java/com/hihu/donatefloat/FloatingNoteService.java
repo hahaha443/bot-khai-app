@@ -31,7 +31,7 @@ public class FloatingNoteService extends Service {
 
     private WindowManager wm;
     private final List<View> windows = new ArrayList<>();
-    private final List<PanelLockStrip> strips = new ArrayList<>();
+    
 
     public static boolean isRunning() { return running; }
 
@@ -79,7 +79,7 @@ public class FloatingNoteService extends Service {
         View floatView = LayoutInflater.from(this).inflate(R.layout.floating_note, null);
         TextView contentView = floatView.findViewById(R.id.noteContent);
         contentView.setText(text);
-        contentView.setTextColor(Prefs.textColor(this));
+        contentView.setTextColor(Prefs.noteTextColor(this));
 
         int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -101,26 +101,25 @@ public class FloatingNoteService extends Service {
         }
         windows.add(floatView);
 
-        PanelLockStrip strip = new PanelLockStrip(this, wm, floatView, params, "note_" + id);
-        strip.attach();
-        strips.add(strip);
+        String lockKey = "note_" + id;
+        floatView.findViewById(R.id.dragHandleNote)
+                .setOnTouchListener(new DragLockListener(this, params, wm, floatView, lockKey));
 
         int min = dp(60);
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setNoteSizeDp(this, pxToDp(w));
             Prefs.setNoteHeightDp(this, pxToDp(h));
-            strip.syncAfterResize();
         };
-        bindCorner(floatView, R.id.resizeNoteTL, CornerResizeListener.Corner.TOP_LEFT, min, params, onResized);
-        bindCorner(floatView, R.id.resizeNoteTR, CornerResizeListener.Corner.TOP_RIGHT, min, params, onResized);
-        bindCorner(floatView, R.id.resizeNoteBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, params, onResized);
-        bindCorner(floatView, R.id.resizeNoteBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, params, onResized);
+        bindCorner(floatView, R.id.resizeNoteTL, CornerResizeListener.Corner.TOP_LEFT, min, params, onResized, lockKey);
+        bindCorner(floatView, R.id.resizeNoteTR, CornerResizeListener.Corner.TOP_RIGHT, min, params, onResized, lockKey);
+        bindCorner(floatView, R.id.resizeNoteBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, params, onResized, lockKey);
+        bindCorner(floatView, R.id.resizeNoteBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, params, onResized, lockKey);
     }
 
     private void bindCorner(View floatView, int viewId, CornerResizeListener.Corner corner, int min,
-                             WindowManager.LayoutParams params, CornerResizeListener.OnResized onResized) {
+                             WindowManager.LayoutParams params, CornerResizeListener.OnResized onResized, String lockKey) {
         View v = floatView.findViewById(viewId);
-        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized));
+        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, lockKey));
     }
 
     private void applyAllSize() {
@@ -130,7 +129,6 @@ public class FloatingNoteService extends Service {
             p.height = dp(Prefs.noteHeightDp(this));
             try { wm.updateViewLayout(v, p); } catch (Exception ignored) {}
         }
-        for (PanelLockStrip s : strips) s.syncAfterResize();
     }
 
     private void applyAllOpacity() {
@@ -140,13 +138,11 @@ public class FloatingNoteService extends Service {
     private void applyAllTextColor() {
         for (View v : windows) {
             TextView tv = v.findViewById(R.id.noteContent);
-            if (tv != null) tv.setTextColor(Prefs.textColor(this));
+            if (tv != null) tv.setTextColor(Prefs.noteTextColor(this));
         }
     }
 
     private void removeAllWindows() {
-        for (PanelLockStrip s : strips) s.detach();
-        strips.clear();
         for (View v : windows) {
             try { wm.removeView(v); } catch (Exception ignored) {}
         }

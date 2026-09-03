@@ -11,7 +11,7 @@ public class Prefs {
     }
 
     public static String serverUrl(Context ctx) {
-        return sp(ctx).getString("server_url", "http://100.0.0.1:8000");
+        return sp(ctx).getString("server_url", "http://100.89.119.122:8000");
     }
 
     public static void setServerUrl(Context ctx, String v) {
@@ -149,13 +149,29 @@ public class Prefs {
         sp(ctx).edit().putInt("note_opacity", v).apply();
     }
 
-    // ─── Màu chữ chung (áp cho Báo cáo, Ghi chú, thanh đo mục tiêu) ───
-    public static int textColor(Context ctx) {
-        return sp(ctx).getInt("text_color", 0xFFFFFFFF);
+    // ─── Màu chữ RIÊNG từng loại menu ───
+    public static int reportTextColor(Context ctx) {
+        return sp(ctx).getInt("report_text_color", 0xFFFFFFFF);
     }
 
-    public static void setTextColor(Context ctx, int v) {
-        sp(ctx).edit().putInt("text_color", v).apply();
+    public static void setReportTextColor(Context ctx, int v) {
+        sp(ctx).edit().putInt("report_text_color", v).apply();
+    }
+
+    public static int noteTextColor(Context ctx) {
+        return sp(ctx).getInt("note_text_color", 0xFFFFFFFF);
+    }
+
+    public static void setNoteTextColor(Context ctx, int v) {
+        sp(ctx).edit().putInt("note_text_color", v).apply();
+    }
+
+    public static int goalTextColor(Context ctx) {
+        return sp(ctx).getInt("goal_text_color", 0xFFFFFFFF);
+    }
+
+    public static void setGoalTextColor(Context ctx, int v) {
+        sp(ctx).edit().putInt("goal_text_color", v).apply();
     }
 
     // ─── Menu #4: thanh đo mục tiêu donate ───
@@ -173,6 +189,14 @@ public class Prefs {
 
     public static void setGoalAmount(Context ctx, long v) {
         sp(ctx).edit().putLong("goal_amount", v).apply();
+    }
+
+    public static String goalNote(Context ctx) {
+        return sp(ctx).getString("goal_note", "");
+    }
+
+    public static void setGoalNote(Context ctx, String v) {
+        sp(ctx).edit().putString("goal_note", v).apply();
     }
 
     public static int goalSizeDp(Context ctx) {

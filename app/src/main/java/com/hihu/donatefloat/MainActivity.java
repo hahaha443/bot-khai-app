@@ -25,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView statusText;
     private boolean overlayPrompted = false;
+    private boolean notifPrompted = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,15 +133,12 @@ public class MainActivity extends AppCompatActivity {
         // ─── Thống kê ───
         findViewById(R.id.btnRefreshStats).setOnClickListener(v -> refreshStats());
 
-        // ─── Màu chữ ───
-        wireColorSwatch(R.id.colorWhite, 0xFFFFFFFF);
-        wireColorSwatch(R.id.colorYellow, 0xFFFFEB3B);
-        wireColorSwatch(R.id.colorCyan, 0xFF00E5FF);
-        wireColorSwatch(R.id.colorGreen, 0xFF4CAF50);
-        wireColorSwatch(R.id.colorPink, 0xFFFF4081);
-        wireColorSwatch(R.id.colorOrange, 0xFFFF9800);
-        wireColorSwatch(R.id.colorRed, 0xFFF44336);
-        findViewById(R.id.btnFullColorPicker).setOnClickListener(v -> showFullColorPicker());
+        // ─── Màu chữ Báo cáo (riêng) ───
+        findViewById(R.id.btnColorReport).setOnClickListener(v -> showFullColorPicker(
+                Prefs.reportTextColor(this), c -> {
+                    Prefs.setReportTextColor(this, c);
+                    FloatingReportService.updateTextColor(this);
+                }));
 
         // ─── Menu Ghi chú (menu rời #3, nhiều ghi chú) ───
         findViewById(R.id.btnAddNote).setOnClickListener(v -> {
@@ -162,6 +160,12 @@ public class MainActivity extends AppCompatActivity {
             toggleService(FloatingNoteService.class, FloatingNoteService.isRunning());
         });
 
+        findViewById(R.id.btnColorNote).setOnClickListener(v -> showFullColorPicker(
+                Prefs.noteTextColor(this), c -> {
+                    Prefs.setNoteTextColor(this, c);
+                    FloatingNoteService.updateTextColor(this);
+                }));
+
         SeekBar noteSize = findViewById(R.id.seekNoteSize);
         noteSize.setProgress(Prefs.noteSizeDp(this));
         noteSize.setOnSeekBarChangeListener(new SimpleSeek(v -> {
@@ -181,17 +185,26 @@ public class MainActivity extends AppCompatActivity {
         // ─── Menu Thanh đo mục tiêu (menu rời #4) ───
         EditText goalTitleEdit = findViewById(R.id.editGoalTitle);
         EditText goalAmountEdit = findViewById(R.id.editGoalAmount);
+        EditText goalNoteEdit = findViewById(R.id.editGoalNote);
         goalTitleEdit.setText(Prefs.goalTitle(this));
         goalAmountEdit.setText(String.valueOf(Prefs.goalAmount(this)));
+        goalNoteEdit.setText(Prefs.goalNote(this));
 
         findViewById(R.id.btnSaveGoal).setOnClickListener(v -> {
             Prefs.setGoalTitle(this, goalTitleEdit.getText().toString().trim());
+            Prefs.setGoalNote(this, goalNoteEdit.getText().toString().trim());
             try {
                 Prefs.setGoalAmount(this, Long.parseLong(goalAmountEdit.getText().toString().trim()));
             } catch (NumberFormatException ignored) {}
             FloatingGoalService.updateConfig(this);
             Toast.makeText(this, "Đã lưu mục tiêu", Toast.LENGTH_SHORT).show();
         });
+
+        findViewById(R.id.btnColorGoal).setOnClickListener(v -> showFullColorPicker(
+                Prefs.goalTextColor(this), c -> {
+                    Prefs.setGoalTextColor(this, c);
+                    FloatingGoalService.updateConfig(this);
+                }));
 
         findViewById(R.id.btnToggleGoal).setOnClickListener(v -> {
             if (!canDrawOverlays()) {
@@ -228,8 +241,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         refreshStatus();
-        checkAndRequestOverlay();
-        checkAndRequestNotif();
+        if (!notifPrompted) {
+            notifPrompted = true;
+            requestNotifThenOverlay();
+        } else {
+            checkAndRequestOverlay();
+        }
 
         if (Prefs.autoStartMenus(this) && canDrawOverlays()) {
             if (!FloatingReportService.isRunning()) {
@@ -268,6 +285,28 @@ public class MainActivity extends AppCompatActivity {
                         != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
                     new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 100);
+        }
+    }
+
+    /** Xin quyền THÔNG BÁO trước — chỉ sau khi có kết quả (đồng ý/từ chối)
+     * mới chuyển tiếp qua xin quyền HIỂN THỊ NỔI, đúng thứ tự yêu cầu. */
+    private void requestNotifThenOverlay() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+                ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 100);
+            // checkAndRequestOverlay() sẽ được gọi tiếp trong onRequestPermissionsResult
+        } else {
+            checkAndRequestOverlay();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 100) {
+            checkAndRequestOverlay();
         }
     }
 
@@ -316,19 +355,16 @@ public class MainActivity extends AppCompatActivity {
         bg.setColor(color);
         bg.setCornerRadius(dpToPx(8));
         v.setBackground(bg);
-        v.setOnClickListener(x -> applyTextColor(color));
     }
 
-    private void applyTextColor(int color) {
-        Prefs.setTextColor(this, color);
-        FloatingReportService.updateTextColor(this);
-        FloatingNoteService.updateTextColor(this);
-        FloatingGoalService.updateConfig(this);
-    }
+    private interface OnColorChosen { void onChosen(int color); }
 
-    private void showFullColorPicker() {
+    /** Bảng chọn màu HSV liên tục — hơn 16 triệu màu (256^3), không giới
+     * hạn vài màu định sẵn nữa. Dùng chung cho Báo cáo/Ghi chú/Mục tiêu,
+     * mỗi nơi tự lưu màu RIÊNG của mình. */
+    private void showFullColorPicker(int initialColor, OnColorChosen onChosen) {
         float[] hsv = new float[3];
-        android.graphics.Color.colorToHSV(Prefs.textColor(this), hsv);
+        android.graphics.Color.colorToHSV(initialColor, hsv);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -337,7 +373,7 @@ public class MainActivity extends AppCompatActivity {
 
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(220)));
+        row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(240)));
 
         HsvSquareView square = new HsvSquareView(this);
         square.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 5));
@@ -345,7 +381,7 @@ public class MainActivity extends AppCompatActivity {
         square.setSatVal(hsv[1], hsv[2]);
 
         HueBarView hueBar = new HueBarView(this);
-        LinearLayout.LayoutParams hueLp = new LinearLayout.LayoutParams(dpToPx(36), LinearLayout.LayoutParams.MATCH_PARENT);
+        LinearLayout.LayoutParams hueLp = new LinearLayout.LayoutParams(dpToPx(40), LinearLayout.LayoutParams.MATCH_PARENT);
         hueLp.leftMargin = dpToPx(8);
         hueBar.setLayoutParams(hueLp);
         hueBar.setHue(hsv[0]);
@@ -354,28 +390,52 @@ public class MainActivity extends AppCompatActivity {
         row.addView(hueBar);
         root.addView(row);
 
+        LinearLayout previewRow = new LinearLayout(this);
+        previewRow.setOrientation(LinearLayout.HORIZONTAL);
+        previewRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams previewRowLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        previewRowLp.topMargin = dpToPx(14);
+        previewRow.setLayoutParams(previewRowLp);
+
         View preview = new View(this);
-        LinearLayout.LayoutParams previewLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(40));
-        previewLp.topMargin = dpToPx(12);
+        LinearLayout.LayoutParams previewLp = new LinearLayout.LayoutParams(dpToPx(48), dpToPx(48));
         preview.setLayoutParams(previewLp);
-        preview.setBackgroundColor(android.graphics.Color.HSVToColor(hsv));
-        root.addView(preview);
+        android.graphics.drawable.GradientDrawable previewBg = new android.graphics.drawable.GradientDrawable();
+        previewBg.setCornerRadius(dpToPx(8));
+        previewBg.setColor(android.graphics.Color.HSVToColor(hsv));
+        preview.setBackground(previewBg);
+
+        TextView hexView = new TextView(this);
+        hexView.setPadding(dpToPx(12), 0, 0, 0);
+        hexView.setTextSize(15);
+        hexView.setText(String.format("#%06X", (0xFFFFFF & android.graphics.Color.HSVToColor(hsv))));
+
+        previewRow.addView(preview);
+        previewRow.addView(hexView);
+        root.addView(previewRow);
+
+        Runnable updatePreview = () -> {
+            int c = android.graphics.Color.HSVToColor(hsv);
+            previewBg.setColor(c);
+            hexView.setText(String.format("#%06X", (0xFFFFFF & c)));
+        };
 
         hueBar.setListener(h -> {
             hsv[0] = h;
             square.setHue(h);
-            preview.setBackgroundColor(android.graphics.Color.HSVToColor(hsv));
+            updatePreview.run();
         });
         square.setListener((s, v) -> {
             hsv[1] = s;
             hsv[2] = v;
-            preview.setBackgroundColor(android.graphics.Color.HSVToColor(hsv));
+            updatePreview.run();
         });
 
         new android.app.AlertDialog.Builder(this)
                 .setTitle("Chọn màu chữ")
                 .setView(root)
-                .setPositiveButton("Chọn", (d, w) -> applyTextColor(android.graphics.Color.HSVToColor(hsv)))
+                .setPositiveButton("Chọn", (d, w) -> onChosen.onChosen(android.graphics.Color.HSVToColor(hsv)))
                 .setNegativeButton("Huỷ", null)
                 .show();
     }

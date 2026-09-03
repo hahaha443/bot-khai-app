@@ -38,7 +38,7 @@ public class FloatingReportService extends Service {
     private WindowManager.LayoutParams params;
     private LinearLayout list;
     private View alertView;
-    private PanelLockStrip lockStrip;
+    
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable poller = this::poll;
 
@@ -92,8 +92,8 @@ public class FloatingReportService extends Service {
         applyBgOpacity();
         applyContentOpacity();
 
-        lockStrip = new PanelLockStrip(this, wm, floatView, params, "report");
-        lockStrip.attach();
+        floatView.findViewById(R.id.dragHandleReport)
+                .setOnTouchListener(new DragLockListener(this, params, wm, floatView, "report"));
 
         wireCornerResize();
         handler.post(poller);
@@ -104,7 +104,6 @@ public class FloatingReportService extends Service {
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setReportSizeDp(this, pxToDp(w));
             Prefs.setReportHeightDp(this, pxToDp(h));
-            if (lockStrip != null) lockStrip.syncAfterResize();
         };
         bindCorner(R.id.resizeReportTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized);
         bindCorner(R.id.resizeReportTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized);
@@ -115,7 +114,7 @@ public class FloatingReportService extends Service {
     private void bindCorner(int viewId, CornerResizeListener.Corner corner, int min,
                              CornerResizeListener.OnResized onResized) {
         View v = floatView.findViewById(viewId);
-        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized));
+        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, "report"));
     }
 
     private void applySize() {
@@ -123,7 +122,6 @@ public class FloatingReportService extends Service {
         params.width = dp(Prefs.reportSizeDp(this));
         params.height = dp(Prefs.reportHeightDp(this));
         wm.updateViewLayout(floatView, params);
-        if (lockStrip != null) lockStrip.syncAfterResize();
     }
 
     private void applyBgOpacity() {
@@ -135,7 +133,7 @@ public class FloatingReportService extends Service {
     private void applyContentOpacity() {
         if (list == null) return;
         float alpha = Prefs.reportContentOpacity(this) / 100f;
-        int color = Prefs.textColor(this);
+        int color = Prefs.reportTextColor(this);
         for (int i = 0; i < list.getChildCount(); i++) {
             View child = list.getChildAt(i);
             child.setAlpha(alpha);
@@ -181,7 +179,7 @@ public class FloatingReportService extends Service {
     private void addRow(long amount, String description) {
         TextView tv = new TextView(this);
         tv.setText(String.format("+%,d đ\n%s", amount, description));
-        tv.setTextColor(Prefs.textColor(this));
+        tv.setTextColor(Prefs.reportTextColor(this));
         tv.setTextSize(12);
         tv.setPadding(dp(6), dp(4), dp(6), dp(4));
         tv.setAlpha(Prefs.reportContentOpacity(this) / 100f);
@@ -251,7 +249,6 @@ public class FloatingReportService extends Service {
         running = false;
         instance = null;
         handler.removeCallbacks(poller);
-        if (lockStrip != null) lockStrip.detach();
         if (alertView != null) {
             try { wm.removeView(alertView); } catch (Exception ignored) {}
         }

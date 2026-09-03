@@ -1,12 +1,14 @@
 package com.hihu.donatefloat;
 
+import android.content.Context;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 
 /** Cho phép kéo resize từ 1 trong 4 góc, neo góc đối diện đứng yên —
  * không cần icon/nút hiển thị, chỉ cần 1 vùng chạm nhỏ trong suốt đặt ở
- * góc tương ứng. */
+ * góc tương ứng. Nếu panel đang bị khoá (lockKey khác null) thì bỏ qua
+ * thao tác kéo, không cho resize. */
 public class CornerResizeListener implements View.OnTouchListener {
 
     public enum Corner { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT }
@@ -21,22 +23,33 @@ public class CornerResizeListener implements View.OnTouchListener {
     private final Corner corner;
     private final int minPx;
     private final OnResized onResized;
+    private final Context ctx;
+    private final String lockKey;
 
     private int initialWidth, initialHeight, initialX, initialY;
     private float initialTouchX, initialTouchY;
 
     public CornerResizeListener(WindowManager.LayoutParams params, WindowManager wm, View target,
                                  Corner corner, int minPx, OnResized onResized) {
+        this(params, wm, target, corner, minPx, onResized, null, null);
+    }
+
+    public CornerResizeListener(WindowManager.LayoutParams params, WindowManager wm, View target,
+                                 Corner corner, int minPx, OnResized onResized,
+                                 Context ctx, String lockKey) {
         this.params = params;
         this.wm = wm;
         this.target = target;
         this.corner = corner;
         this.minPx = minPx;
         this.onResized = onResized;
+        this.ctx = ctx;
+        this.lockKey = lockKey;
     }
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
+        if (lockKey != null && Prefs.panelLocked(ctx, lockKey)) return true;
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 initialWidth = params.width;

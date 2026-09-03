@@ -9,7 +9,10 @@
         android:orientation="vertical"
         android:background="@drawable/bg_floating">
 
-        
+        <View
+            android:id="@+id/dragHandleReport"
+            android:layout_width="match_parent"
+            android:layout_height="14dp" />
 
         <ScrollView
             android:layout_width="match_parent"

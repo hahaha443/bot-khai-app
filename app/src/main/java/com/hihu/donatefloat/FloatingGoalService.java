@@ -19,9 +19,10 @@ import android.view.WindowManager;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-/** Floating menu #4: thẻ đo mục tiêu donate, viền gradient. Poll thưa 30s
- * cho nhẹ pin/CPU. Chạm 4 lần liên tiếp lên dải mỏng đỉnh để khoá/mở khoá
- * riêng menu này. */
+/** Floating menu #4: thẻ đo mục tiêu donate, viền gradient. Số lượt donate
+ * hiện ở góc (badge), % hiện ngay TRONG thanh tiến trình và trượt theo
+ * đúng vị trí donate tới đâu, dưới thanh là dòng ghi chú tự do người
+ * dùng tự viết. Poll thưa 30s cho nhẹ pin/CPU. */
 public class FloatingGoalService extends Service {
 
     private static boolean running = false;
@@ -30,9 +31,8 @@ public class FloatingGoalService extends Service {
     private WindowManager wm;
     private View floatView;
     private WindowManager.LayoutParams params;
-    private TextView titleView, currentView, targetView, subtitleView, percentBadge;
+    private TextView titleView, currentView, targetView, subtitleView, countBadge, percentInBar;
     private ProgressBar progressBar;
-    private PanelLockStrip lockStrip;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable poller = this::poll;
 
@@ -63,7 +63,8 @@ public class FloatingGoalService extends Service {
         currentView = floatView.findViewById(R.id.goalCurrentView);
         targetView = floatView.findViewById(R.id.goalTargetView);
         subtitleView = floatView.findViewById(R.id.goalSubtitleView);
-        percentBadge = floatView.findViewById(R.id.goalPercentBadge);
+        countBadge = floatView.findViewById(R.id.goalCountBadge);
+        percentInBar = floatView.findViewById(R.id.goalPercentInBar);
         progressBar = floatView.findViewById(R.id.goalProgressBar);
 
         int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
@@ -81,14 +82,13 @@ public class FloatingGoalService extends Service {
         applyOpacity();
         wm.addView(floatView, params);
 
-        lockStrip = new PanelLockStrip(this, wm, floatView, params, "goal");
-        lockStrip.attach();
+        floatView.findViewById(R.id.dragHandleGoal)
+                .setOnTouchListener(new DragLockListener(this, params, wm, floatView, "goal"));
 
-        int min = dp(100);
+        int min = dp(120);
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setGoalSizeDp(this, pxToDp(w));
             Prefs.setGoalHeightDp(this, pxToDp(h));
-            if (lockStrip != null) lockStrip.syncAfterResize();
         };
         bindCorner(R.id.resizeGoalTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized);
         bindCorner(R.id.resizeGoalTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized);
@@ -101,13 +101,16 @@ public class FloatingGoalService extends Service {
     private void bindCorner(int viewId, CornerResizeListener.Corner corner, int min,
                              CornerResizeListener.OnResized onResized) {
         View v = floatView.findViewById(viewId);
-        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized));
+        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, "goal"));
     }
 
     private void applyConfig() {
         titleView.setText(Prefs.goalTitle(this));
-        titleView.setTextColor(Prefs.textColor(this));
+        titleView.setTextColor(Prefs.goalTextColor(this));
         targetView.setText(String.format("/ %,d đ", Prefs.goalAmount(this)));
+        String note = Prefs.goalNote(this);
+        subtitleView.setText(note);
+        subtitleView.setVisibility(note.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
     private void applySize() {
@@ -115,7 +118,6 @@ public class FloatingGoalService extends Service {
         params.width = dp(Prefs.goalSizeDp(this));
         params.height = dp(Prefs.goalHeightDp(this));
         wm.updateViewLayout(floatView, params);
-        if (lockStrip != null) lockStrip.syncAfterResize();
     }
 
     private void applyOpacity() {
@@ -130,10 +132,11 @@ public class FloatingGoalService extends Service {
                 handler.post(() -> {
                     long goal = Math.max(1, Prefs.goalAmount(FloatingGoalService.this));
                     currentView.setText(String.format("%,d đ", result.total));
-                    subtitleView.setText(result.count + " giao dịch hôm nay");
+                    countBadge.setText(result.count + " lượt");
                     int percent = (int) Math.min(100, (result.total * 100L) / goal);
-                    percentBadge.setText(percent + "%");
                     progressBar.setProgress((int) Math.min(1000, (result.total * 1000L) / goal));
+                    percentInBar.setText(percent + "%");
+                    positionPercentLabel(percent);
                 });
             }
 
@@ -142,6 +145,20 @@ public class FloatingGoalService extends Service {
             }
         });
         handler.postDelayed(poller, 30_000);
+    }
+
+    /** Đặt vị trí chữ % NẰM NGAY TRONG thanh tiến trình, trượt theo đúng
+     * điểm donate tới đâu (bám theo mép fill), không cố định giữa thanh. */
+    private void positionPercentLabel(int percent) {
+        progressBar.post(() -> {
+            int barWidth = progressBar.getWidth();
+            if (barWidth == 0) return;
+            int labelWidth = percentInBar.getWidth();
+            if (labelWidth == 0) labelWidth = dp(28);
+            float fillX = (percent / 100f) * barWidth;
+            float targetX = Math.max(4, Math.min(barWidth - labelWidth - 4, fillX - labelWidth / 2f));
+            percentInBar.setTranslationX(targetX);
+        });
     }
 
     private int dp(int v) {
@@ -176,7 +193,6 @@ public class FloatingGoalService extends Service {
         running = false;
         instance = null;
         handler.removeCallbacks(poller);
-        if (lockStrip != null) lockStrip.detach();
         if (wm != null && floatView != null) wm.removeView(floatView);
     }
 }

@@ -135,37 +135,12 @@
             android:backgroundTint="#FF9800"
             android:text="🧪 Xem thử (bơm dữ liệu demo để canh chỉnh)" />
 
-        <View style="@style/DividerLine" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Màu chữ chung (Báo cáo / Ghi chú / Mục tiêu)"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:layout_marginBottom="8dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:weightSum="7">
-
-            <View android:id="@+id/colorWhite" style="@style/ColorSwatch" android:background="#FFFFFF" />
-            <View android:id="@+id/colorYellow" style="@style/ColorSwatch" android:background="#FFEB3B" />
-            <View android:id="@+id/colorCyan" style="@style/ColorSwatch" android:background="#00E5FF" />
-            <View android:id="@+id/colorGreen" style="@style/ColorSwatch" android:background="#4CAF50" />
-            <View android:id="@+id/colorPink" style="@style/ColorSwatch" android:background="#FF4081" />
-            <View android:id="@+id/colorOrange" style="@style/ColorSwatch" android:background="#FF9800" />
-            <View android:id="@+id/colorRed" style="@style/ColorSwatch" android:background="#F44336" />
-        </LinearLayout>
-
         <Button
-            android:id="@+id/btnFullColorPicker"
+            android:id="@+id/btnColorReport"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:text="🎨 Chọn màu khác (hơn 500k màu)" />
+            android:text="🎨 Màu chữ Báo cáo" />
 
         <View style="@style/DividerLine" />
 
@@ -197,6 +172,13 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:layout_marginTop="8dp" />
+
+        <Button
+            android:id="@+id/btnColorNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="🎨 Màu chữ Ghi chú" />
 
         <Button
             android:id="@+id/btnToggleNote"
@@ -244,11 +226,26 @@
             android:hint="Số tiền mục tiêu (vd: 5000000)"
             android:inputType="number" />
 
+        <EditText
+            android:id="@+id/editGoalNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Ghi chú thêm dưới thanh (vd: Cảm ơn mọi người đã ủng hộ!)"
+            android:minLines="2"
+            android:gravity="top" />
+
         <Button
             android:id="@+id/btnSaveGoal"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Lưu mục tiêu" />
+
+        <Button
+            android:id="@+id/btnColorGoal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="🎨 Màu chữ Mục tiêu" />
 
         <Button
             android:id="@+id/btnToggleGoal"

@@ -33,7 +33,7 @@ public class FloatingQRService extends Service {
     private WindowManager.LayoutParams params;
     private ImageView qrImage;
     private TextView statusText;
-    private PanelLockStrip lockStrip;
+    
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     public static boolean isRunning() { return running; }
@@ -73,8 +73,8 @@ public class FloatingQRService extends Service {
         applyOpacity();
         wm.addView(floatView, params);
 
-        lockStrip = new PanelLockStrip(this, wm, floatView, params, "qr");
-        lockStrip.attach();
+        floatView.findViewById(R.id.dragHandleQr)
+                .setOnTouchListener(new DragLockListener(this, params, wm, floatView, "qr"));
 
         wireCornerResize();
         loadStaticQr();
@@ -85,7 +85,6 @@ public class FloatingQRService extends Service {
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setQrSizeDp(this, pxToDp(w));
             Prefs.setQrHeightDp(this, pxToDp(h));
-            if (lockStrip != null) lockStrip.syncAfterResize();
         };
         bindCorner(R.id.resizeQrTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized);
         bindCorner(R.id.resizeQrTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized);
@@ -96,7 +95,7 @@ public class FloatingQRService extends Service {
     private void bindCorner(int viewId, CornerResizeListener.Corner corner, int min,
                              CornerResizeListener.OnResized onResized) {
         View v = floatView.findViewById(viewId);
-        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized));
+        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, "qr"));
     }
 
     private void loadStaticQr() {
@@ -141,7 +140,6 @@ public class FloatingQRService extends Service {
         params.width = dp(Prefs.qrSizeDp(this));
         params.height = dp(Prefs.qrHeightDp(this));
         wm.updateViewLayout(floatView, params);
-        if (lockStrip != null) lockStrip.syncAfterResize();
     }
 
     private void applyOpacity() {
@@ -180,7 +178,6 @@ public class FloatingQRService extends Service {
         super.onDestroy();
         running = false;
         instance = null;
-        if (lockStrip != null) lockStrip.detach();
         if (wm != null && floatView != null) wm.removeView(floatView);
     }
 }
