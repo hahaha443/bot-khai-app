@@ -110,9 +110,11 @@ public class FloatingNoteService extends Service {
         windows.add(floatView);
 
         String lockKey = "note_" + id;
-        floatView.findViewById(R.id.dragHandleNote)
-                .setOnTouchListener(new DragLockListener(this, params, wm, floatView, lockKey));
-        contentView.setOnTouchListener(new TapLockListener(this, lockKey, null));
+        View dragHandleNote = floatView.findViewById(R.id.dragHandleNote);
+        dragHandleNote.setOnTouchListener(new DragLockListener(this, params, wm, floatView, lockKey));
+        LockVisuals.applyState(dragHandleNote, this, lockKey);
+        contentView.setOnTouchListener(new TapLockListener(this, lockKey,
+                () -> LockVisuals.applyState(dragHandleNote, this, lockKey)));
 
         int min = dp(60);
         CornerResizeListener.OnResized onResized = (w, h) -> {

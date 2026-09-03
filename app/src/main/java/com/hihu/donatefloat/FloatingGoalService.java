@@ -86,9 +86,11 @@ public class FloatingGoalService extends Service {
         applyOpacity();
         wm.addView(floatView, params);
 
-        floatView.findViewById(R.id.dragHandleGoal)
-                .setOnTouchListener(new DragLockListener(this, params, wm, floatView, "goal"));
-        currentView.setOnTouchListener(new TapLockListener(this, "goal", null));
+        View dragHandleGoal = floatView.findViewById(R.id.dragHandleGoal);
+        dragHandleGoal.setOnTouchListener(new DragLockListener(this, params, wm, floatView, "goal"));
+        LockVisuals.applyState(dragHandleGoal, this, "goal");
+        currentView.setOnTouchListener(new TapLockListener(this, "goal",
+                () -> LockVisuals.applyState(dragHandleGoal, this, "goal")));
 
         int min = dp(120);
         CornerResizeListener.OnResized onResized = (w, h) -> {

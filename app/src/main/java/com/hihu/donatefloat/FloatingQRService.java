@@ -75,9 +75,11 @@ public class FloatingQRService extends Service {
         applyOpacity();
         wm.addView(floatView, params);
 
-        floatView.findViewById(R.id.dragHandleQr)
-                .setOnTouchListener(new DragLockListener(this, params, wm, floatView, "qr"));
-        qrImage.setOnTouchListener(new TapLockListener(this, "qr", null));
+        View dragHandleQr = floatView.findViewById(R.id.dragHandleQr);
+        dragHandleQr.setOnTouchListener(new DragLockListener(this, params, wm, floatView, "qr"));
+        LockVisuals.applyState(dragHandleQr, this, "qr");
+        qrImage.setOnTouchListener(new TapLockListener(this, "qr",
+                () -> LockVisuals.applyState(dragHandleQr, this, "qr")));
 
         wireCornerResize();
         loadStaticQr();

@@ -46,6 +46,7 @@ public class TapLockListener implements View.OnTouchListener {
                     if (tapCount >= TAPS_TO_TOGGLE) {
                         tapCount = 0;
                         Prefs.setPanelLocked(ctx, lockKey, !Prefs.panelLocked(ctx, lockKey));
+                        LockVisuals.bounce(v);
                         if (onToggled != null) onToggled.run();
                     }
                 }

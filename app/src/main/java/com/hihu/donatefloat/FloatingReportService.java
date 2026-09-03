@@ -92,9 +92,11 @@ public class FloatingReportService extends Service {
         applyBgOpacity();
         applyContentOpacity();
 
-        floatView.findViewById(R.id.dragHandleReport)
-                .setOnTouchListener(new DragLockListener(this, params, wm, floatView, "report"));
-        list.setOnTouchListener(new TapLockListener(this, "report", null));
+        View dragHandleReport = floatView.findViewById(R.id.dragHandleReport);
+        dragHandleReport.setOnTouchListener(new DragLockListener(this, params, wm, floatView, "report"));
+        LockVisuals.applyState(dragHandleReport, this, "report");
+        list.setOnTouchListener(new TapLockListener(this, "report",
+                () -> LockVisuals.applyState(dragHandleReport, this, "report")));
 
         wireCornerResize();
         handler.post(poller);
