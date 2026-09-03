@@ -37,15 +37,7 @@ public class CornerResizeListener implements View.OnTouchListener {
     private boolean resizing = false;
     private int pendingWidth, pendingHeight, pendingX, pendingY;
 
-    private final Choreographer.FrameCallback frameCallback = frameTimeNanos -> {
-        frameScheduled = false;
-        if (!resizing) return;
-        params.width = pendingWidth;
-        params.height = pendingHeight;
-        params.x = pendingX;
-        params.y = pendingY;
-        try { wm.updateViewLayout(target, params); } catch (Exception ignored) {}
-    };
+    private final Choreographer.FrameCallback frameCallback;
 
     public CornerResizeListener(WindowManager.LayoutParams params, WindowManager wm, View target,
                                  Corner corner, int minPx, OnResized onResized) {
@@ -63,6 +55,15 @@ public class CornerResizeListener implements View.OnTouchListener {
         this.onResized = onResized;
         this.ctx = ctx;
         this.lockKey = lockKey;
+        this.frameCallback = frameTimeNanos -> {
+            frameScheduled = false;
+            if (!resizing) return;
+            this.params.width = pendingWidth;
+            this.params.height = pendingHeight;
+            this.params.x = pendingX;
+            this.params.y = pendingY;
+            try { this.wm.updateViewLayout(this.target, this.params); } catch (Exception ignored) {}
+        };
     }
 
     @Override

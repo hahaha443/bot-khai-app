@@ -28,13 +28,7 @@ public class DragLockListener implements View.OnTouchListener {
     private int pendingX, pendingY;
     private boolean dragging = false;
 
-    private final Choreographer.FrameCallback frameCallback = frameTimeNanos -> {
-        frameScheduled = false;
-        if (!dragging) return;
-        params.x = pendingX;
-        params.y = pendingY;
-        try { wm.updateViewLayout(target, params); } catch (Exception ignored) {}
-    };
+    private final Choreographer.FrameCallback frameCallback;
 
     public DragLockListener(Context ctx, WindowManager.LayoutParams params, WindowManager wm,
                              View target, String lockKey) {
@@ -43,6 +37,13 @@ public class DragLockListener implements View.OnTouchListener {
         this.wm = wm;
         this.target = target;
         this.lockKey = lockKey;
+        this.frameCallback = frameTimeNanos -> {
+            frameScheduled = false;
+            if (!dragging) return;
+            this.params.x = pendingX;
+            this.params.y = pendingY;
+            try { this.wm.updateViewLayout(this.target, this.params); } catch (Exception ignored) {}
+        };
     }
 
     @Override
