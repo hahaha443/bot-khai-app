@@ -22,9 +22,8 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Floating menu #3: hỗ trợ NHIỀU "ghi chú nổi" cùng lúc — mỗi ghi chú
- * (mục tiêu donate, luật stream, thông báo...) là 1 bảng riêng, tự kéo
- * thả/resize/khoá độc lập. Danh sách ghi chú lưu ở Prefs dạng JSON. */
+/** Floating menu #3: NHIỀU "ghi chú nổi" cùng lúc, mỗi cái tự kéo/resize
+ * và khoá RIÊNG (chạm 4 lần liên tiếp trên dải mỏng của chính nó). */
 public class FloatingNoteService extends Service {
 
     private static boolean running = false;
@@ -32,6 +31,7 @@ public class FloatingNoteService extends Service {
 
     private WindowManager wm;
     private final List<View> windows = new ArrayList<>();
+    private final List<PanelLockStrip> strips = new ArrayList<>();
 
     public static boolean isRunning() { return running; }
 
@@ -43,15 +43,10 @@ public class FloatingNoteService extends Service {
         if (instance != null) instance.applyAllOpacity();
     }
 
-    public static void updateLocked(Context ctx) {
-        if (instance != null) instance.applyAllLocked();
-    }
-
     public static void updateTextColor(Context ctx) {
         if (instance != null) instance.applyAllTextColor();
     }
 
-    /** Danh sách ghi chú vừa đổi (thêm/xoá) — rebuild lại các cửa sổ nếu service đang chạy. */
     public static void rebuild(Context ctx) {
         if (instance != null) instance.doRebuild();
     }
@@ -63,7 +58,6 @@ public class FloatingNoteService extends Service {
         running = true;
         startForegroundWithNotification();
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
-        LockBubble.acquire(this);
         buildAllWindows();
     }
 
@@ -90,35 +84,37 @@ public class FloatingNoteService extends Service {
         int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 : WindowManager.LayoutParams.TYPE_PHONE;
-        int flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-        if (Prefs.locked(this)) flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
 
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 dp(Prefs.noteSizeDp(this)), dp(Prefs.noteHeightDp(this)),
-                type, flags, PixelFormat.TRANSLUCENT);
+                type, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.TOP | Gravity.START;
         params.x = 20 + (index * 24);
         params.y = 560 + (index * 24);
         floatView.setTag(params);
+        floatView.setAlpha(Prefs.noteOpacity(this) / 100f);
 
-        floatView.findViewById(R.id.dragHandleNote)
-                .setOnTouchListener(new DragTouchListener(params, wm, floatView, () -> LockManager.setLocked(this, true)));
+        try {
+            wm.addView(floatView, params);
+        } catch (Exception ignored) {
+            return;
+        }
+        windows.add(floatView);
+
+        PanelLockStrip strip = new PanelLockStrip(this, wm, floatView, params, "note_" + id);
+        strip.attach();
+        strips.add(strip);
 
         int min = dp(60);
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setNoteSizeDp(this, pxToDp(w));
             Prefs.setNoteHeightDp(this, pxToDp(h));
+            strip.syncAfterResize();
         };
         bindCorner(floatView, R.id.resizeNoteTL, CornerResizeListener.Corner.TOP_LEFT, min, params, onResized);
         bindCorner(floatView, R.id.resizeNoteTR, CornerResizeListener.Corner.TOP_RIGHT, min, params, onResized);
         bindCorner(floatView, R.id.resizeNoteBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, params, onResized);
         bindCorner(floatView, R.id.resizeNoteBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, params, onResized);
-
-        floatView.setAlpha(Prefs.noteOpacity(this) / 100f);
-        try {
-            wm.addView(floatView, params);
-            windows.add(floatView);
-        } catch (Exception ignored) {}
     }
 
     private void bindCorner(View floatView, int viewId, CornerResizeListener.Corner corner, int min,
@@ -134,6 +130,7 @@ public class FloatingNoteService extends Service {
             p.height = dp(Prefs.noteHeightDp(this));
             try { wm.updateViewLayout(v, p); } catch (Exception ignored) {}
         }
+        for (PanelLockStrip s : strips) s.syncAfterResize();
     }
 
     private void applyAllOpacity() {
@@ -147,17 +144,9 @@ public class FloatingNoteService extends Service {
         }
     }
 
-    private void applyAllLocked() {
-        boolean locked = Prefs.locked(this);
-        for (View v : windows) {
-            WindowManager.LayoutParams p = (WindowManager.LayoutParams) v.getTag();
-            if (locked) p.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-            else p.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-            try { wm.updateViewLayout(v, p); } catch (Exception ignored) {}
-        }
-    }
-
     private void removeAllWindows() {
+        for (PanelLockStrip s : strips) s.detach();
+        strips.clear();
         for (View v : windows) {
             try { wm.removeView(v); } catch (Exception ignored) {}
         }
@@ -207,7 +196,6 @@ public class FloatingNoteService extends Service {
         super.onDestroy();
         running = false;
         instance = null;
-        LockBubble.release();
         removeAllWindows();
     }
 }

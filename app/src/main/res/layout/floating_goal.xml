@@ -6,26 +6,51 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="@drawable/bg_floating"
-        android:padding="10dp">
-
-        <View
-            android:id="@+id/dragHandleGoal"
-            android:layout_width="match_parent"
-            android:layout_height="10dp" />
-
-        <TextView
-            android:id="@+id/goalTitleView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            android:textSize="13sp" />
+        android:background="@drawable/bg_goal_card"
+        android:padding="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="🎯"
+                android:textSize="16sp"
+                android:paddingEnd="6dp" />
+
+            <TextView
+                android:id="@+id/goalTitleView"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="6"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/goalPercentBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_percent_badge"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="11sp"
+                android:text="0%" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
             android:orientation="horizontal">
 
             <TextView
@@ -35,15 +60,15 @@
                 android:layout_weight="1"
                 android:textColor="#00E5FF"
                 android:textStyle="bold"
-                android:textSize="14sp" />
+                android:textSize="18sp" />
 
             <TextView
                 android:id="@+id/goalTargetView"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:gravity="end"
-                android:textColor="#AAAAAA"
+                android:gravity="end|bottom"
+                android:textColor="#999999"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -51,8 +76,8 @@
             android:id="@+id/goalProgressBar"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="10dp"
-            android:layout_marginTop="6dp"
+            android:layout_height="12dp"
+            android:layout_marginTop="8dp"
             android:progressDrawable="@drawable/progress_gradient"
             android:max="1000"
             android:progress="0" />
@@ -62,7 +87,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:textColor="#CCCCCC"
+            android:textColor="#AAAAAA"
+            android:textStyle="italic"
             android:textSize="10sp" />
 
     </LinearLayout>

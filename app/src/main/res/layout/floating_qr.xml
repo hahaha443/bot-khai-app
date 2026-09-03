@@ -8,10 +8,7 @@
         android:orientation="vertical"
         android:background="@drawable/bg_floating">
 
-        <View
-            android:id="@+id/dragHandleQr"
-            android:layout_width="match_parent"
-            android:layout_height="12dp" />
+        
 
         <ImageView
             android:id="@+id/imageQr"

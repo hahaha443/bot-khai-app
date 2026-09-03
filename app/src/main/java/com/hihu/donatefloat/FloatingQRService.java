@@ -20,10 +20,9 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-/** Floating menu #2: QR TĨNH của tài khoản — KHÔNG addInfo, KHÔNG mã cố
- * định. Ai quét cũng ra đúng QR này, tự nhập nội dung/ghi chú trong app
- * ngân hàng của họ. Kéo góc dưới-phải để resize tự do, có thể khoá tương
- * tác để không đụng trúng lúc chơi game. */
+/** Floating menu #2: QR TĨNH của tài khoản — không addInfo, không mã cố
+ * định. Kéo góc bất kỳ để resize. Chạm 4 lần liên tiếp trên dải mỏng đỉnh
+ * panel để khoá/mở khoá RIÊNG panel này. */
 public class FloatingQRService extends Service {
 
     private static boolean running = false;
@@ -34,6 +33,7 @@ public class FloatingQRService extends Service {
     private WindowManager.LayoutParams params;
     private ImageView qrImage;
     private TextView statusText;
+    private PanelLockStrip lockStrip;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     public static boolean isRunning() { return running; }
@@ -44,10 +44,6 @@ public class FloatingQRService extends Service {
 
     public static void updateOpacity(Context ctx) {
         if (instance != null) instance.applyOpacity();
-    }
-
-    public static void updateLocked(Context ctx) {
-        if (instance != null) instance.applyLocked();
     }
 
     @Override
@@ -66,26 +62,21 @@ public class FloatingQRService extends Service {
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 : WindowManager.LayoutParams.TYPE_PHONE;
 
-        int flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-        if (Prefs.locked(this)) flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-
         params = new WindowManager.LayoutParams(
                 dp(Prefs.qrSizeDp(this)), dp(Prefs.qrHeightDp(this)),
-                type, flags,
+                type, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.TOP | Gravity.START;
         params.x = 20;
         params.y = 340;
 
-        floatView.findViewById(R.id.dragHandleQr)
-                .setOnTouchListener(new DragTouchListener(params, wm, floatView, () -> LockManager.setLocked(this, true)));
-
-        wireCornerResize();
-
         applyOpacity();
         wm.addView(floatView, params);
-        applyLocked();
-        LockBubble.acquire(this);
+
+        lockStrip = new PanelLockStrip(this, wm, floatView, params, "qr");
+        lockStrip.attach();
+
+        wireCornerResize();
         loadStaticQr();
     }
 
@@ -94,6 +85,7 @@ public class FloatingQRService extends Service {
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setQrSizeDp(this, pxToDp(w));
             Prefs.setQrHeightDp(this, pxToDp(h));
+            if (lockStrip != null) lockStrip.syncAfterResize();
         };
         bindCorner(R.id.resizeQrTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized);
         bindCorner(R.id.resizeQrTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized);
@@ -117,7 +109,6 @@ public class FloatingQRService extends Service {
                     @Override
                     public void onSuccess(Bitmap result) {
                         handler.post(() -> {
-                            // Giải phóng bitmap cũ trước khi gán bitmap mới — tránh rò rỉ RAM
                             Object old = qrImage.getDrawable();
                             if (old instanceof android.graphics.drawable.BitmapDrawable) {
                                 Bitmap oldBmp = ((android.graphics.drawable.BitmapDrawable) old).getBitmap();
@@ -150,26 +141,12 @@ public class FloatingQRService extends Service {
         params.width = dp(Prefs.qrSizeDp(this));
         params.height = dp(Prefs.qrHeightDp(this));
         wm.updateViewLayout(floatView, params);
+        if (lockStrip != null) lockStrip.syncAfterResize();
     }
 
     private void applyOpacity() {
         if (floatView == null) return;
         floatView.setAlpha(Prefs.qrOpacity(this) / 100f);
-    }
-
-    private void applyLocked() {
-        if (params == null || floatView == null || wm == null) return;
-        boolean locked = Prefs.locked(this);
-        if (locked) {
-            params.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-        } else {
-            params.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-        }
-        wm.updateViewLayout(floatView, params);
-        TextView handle = floatView.findViewById(R.id.dragHandleQr);
-        if (handle != null) {
-            handle.setText(locked ? "🔒 QR (đã khoá)" : "≡  QR chuyển khoản");
-        }
     }
 
     private int dp(int v) {
@@ -203,7 +180,7 @@ public class FloatingQRService extends Service {
         super.onDestroy();
         running = false;
         instance = null;
-        LockBubble.release();
+        if (lockStrip != null) lockStrip.detach();
         if (wm != null && floatView != null) wm.removeView(floatView);
     }
 }

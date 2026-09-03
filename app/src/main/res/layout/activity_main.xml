@@ -58,11 +58,12 @@
             android:layout_height="wrap_content"
             android:text="Tự bật cả 2 menu khi mở app" />
 
-        <CheckBox
-            android:id="@+id/checkLocked"
+        <TextView
+            android:id="@+id/textLockHint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="🔒 Khoá tương tác 2 menu (chơi game khỏi sợ bấm trúng)" />
+            android:textSize="11sp"
+            android:textColor="#888888" />
 
         <Button
             android:id="@+id/btnToggleReport"
@@ -158,6 +159,13 @@
             <View android:id="@+id/colorOrange" style="@style/ColorSwatch" android:background="#FF9800" />
             <View android:id="@+id/colorRed" style="@style/ColorSwatch" android:background="#F44336" />
         </LinearLayout>
+
+        <Button
+            android:id="@+id/btnFullColorPicker"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="🎨 Chọn màu khác (hơn 500k màu)" />
 
         <View style="@style/DividerLine" />
 

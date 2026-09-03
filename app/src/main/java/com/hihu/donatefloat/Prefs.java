@@ -58,12 +58,12 @@ public class Prefs {
         sp(ctx).edit().putInt("qr_height_dp", v).apply();
     }
 
-    public static boolean locked(Context ctx) {
-        return sp(ctx).getBoolean("locked", false);
+    public static boolean panelLocked(Context ctx, String key) {
+        return sp(ctx).getBoolean("locked_" + key, false);
     }
 
-    public static void setLocked(Context ctx, boolean v) {
-        sp(ctx).edit().putBoolean("locked", v).apply();
+    public static void setPanelLocked(Context ctx, String key, boolean v) {
+        sp(ctx).edit().putBoolean("locked_" + key, v).apply();
     }
 
     public static int lastSeenId(Context ctx) {

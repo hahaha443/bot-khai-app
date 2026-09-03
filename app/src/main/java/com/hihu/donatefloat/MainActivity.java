@@ -48,15 +48,8 @@ public class MainActivity extends AppCompatActivity {
         autoStart.setChecked(Prefs.autoStartMenus(this));
         autoStart.setOnCheckedChangeListener((btn, checked) -> Prefs.setAutoStartMenus(this, checked));
 
-        CheckBox lockedBox = findViewById(R.id.checkLocked);
-        lockedBox.setChecked(Prefs.locked(this));
-        lockedBox.setOnCheckedChangeListener((btn, checked) -> {
-            Prefs.setLocked(this, checked);
-            FloatingReportService.updateLocked(this);
-            FloatingQRService.updateLocked(this);
-            Toast.makeText(this, checked ? "Đã khoá — 2 menu sẽ không nhận chạm nữa" : "Đã mở khoá",
-                    Toast.LENGTH_SHORT).show();
-        });
+        TextView lockHint = findViewById(R.id.textLockHint);
+        lockHint.setText("🔒 Chạm liên tiếp 4 lần lên đỉnh 1 menu nổi để khoá/mở khoá riêng menu đó (không ảnh hưởng menu khác).");
 
         // ─── Bật/tắt menu ───
         findViewById(R.id.btnToggleReport).setOnClickListener(v -> {
@@ -147,6 +140,7 @@ public class MainActivity extends AppCompatActivity {
         wireColorSwatch(R.id.colorPink, 0xFFFF4081);
         wireColorSwatch(R.id.colorOrange, 0xFFFF9800);
         wireColorSwatch(R.id.colorRed, 0xFFF44336);
+        findViewById(R.id.btnFullColorPicker).setOnClickListener(v -> showFullColorPicker());
 
         // ─── Menu Ghi chú (menu rời #3, nhiều ghi chú) ───
         findViewById(R.id.btnAddNote).setOnClickListener(v -> {
@@ -318,12 +312,77 @@ public class MainActivity extends AppCompatActivity {
 
     private void wireColorSwatch(int viewId, int color) {
         View v = findViewById(viewId);
-        v.setOnClickListener(x -> {
-            Prefs.setTextColor(this, color);
-            FloatingReportService.updateTextColor(this);
-            FloatingNoteService.updateTextColor(this);
-            FloatingGoalService.updateConfig(this);
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(color);
+        bg.setCornerRadius(dpToPx(8));
+        v.setBackground(bg);
+        v.setOnClickListener(x -> applyTextColor(color));
+    }
+
+    private void applyTextColor(int color) {
+        Prefs.setTextColor(this, color);
+        FloatingReportService.updateTextColor(this);
+        FloatingNoteService.updateTextColor(this);
+        FloatingGoalService.updateConfig(this);
+    }
+
+    private void showFullColorPicker() {
+        float[] hsv = new float[3];
+        android.graphics.Color.colorToHSV(Prefs.textColor(this), hsv);
+
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        int pad = dpToPx(16);
+        root.setPadding(pad, pad, pad, pad);
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(220)));
+
+        HsvSquareView square = new HsvSquareView(this);
+        square.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 5));
+        square.setHue(hsv[0]);
+        square.setSatVal(hsv[1], hsv[2]);
+
+        HueBarView hueBar = new HueBarView(this);
+        LinearLayout.LayoutParams hueLp = new LinearLayout.LayoutParams(dpToPx(36), LinearLayout.LayoutParams.MATCH_PARENT);
+        hueLp.leftMargin = dpToPx(8);
+        hueBar.setLayoutParams(hueLp);
+        hueBar.setHue(hsv[0]);
+
+        row.addView(square);
+        row.addView(hueBar);
+        root.addView(row);
+
+        View preview = new View(this);
+        LinearLayout.LayoutParams previewLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(40));
+        previewLp.topMargin = dpToPx(12);
+        preview.setLayoutParams(previewLp);
+        preview.setBackgroundColor(android.graphics.Color.HSVToColor(hsv));
+        root.addView(preview);
+
+        hueBar.setListener(h -> {
+            hsv[0] = h;
+            square.setHue(h);
+            preview.setBackgroundColor(android.graphics.Color.HSVToColor(hsv));
         });
+        square.setListener((s, v) -> {
+            hsv[1] = s;
+            hsv[2] = v;
+            preview.setBackgroundColor(android.graphics.Color.HSVToColor(hsv));
+        });
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Chọn màu chữ")
+                .setView(root)
+                .setPositiveButton("Chọn", (d, w) -> applyTextColor(android.graphics.Color.HSVToColor(hsv)))
+                .setNegativeButton("Huỷ", null)
+                .show();
+    }
+
+    private int dpToPx(int dp) {
+        return (int) android.util.TypedValue.applyDimension(
+                android.util.TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
     }
 
     /** Ghi chú lưu dạng JSON [{id,text}] trong Prefs — dùng org.json có sẵn. */

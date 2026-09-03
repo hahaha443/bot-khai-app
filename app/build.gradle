@@ -14,10 +14,24 @@ android {
         versionName "1.0"
     }
 
+    // Khoá ký CỐ ĐỊNH — dùng chung cho mọi lần build (kể cả trên CI khác máy)
+    // để APK mới luôn cùng chữ ký với bản cũ, cài ĐÈ được, khỏi cần gỡ cài lại.
+    signingConfigs {
+        release {
+            storeFile file("debug.keystore")
+            storePassword "donatefloat123"
+            keyAlias "donatefloatkey"
+            keyPassword "donatefloat123"
+        }
+    }
+
     buildTypes {
-        debug {}
+        debug {
+            signingConfig signingConfigs.release
+        }
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
         }
     }
 

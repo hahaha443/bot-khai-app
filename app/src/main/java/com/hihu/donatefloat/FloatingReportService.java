@@ -21,10 +21,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 /** Floating menu #1: danh sách giao dịch. Mỗi dòng tự biến mất sau 25s,
- * tối đa hiện 2 dòng cùng lúc (dòng cũ nhất bị đẩy ra khi có dòng thứ 3).
- * Độ mờ tách riêng: mờ NỀN (khung) và mờ NỘI DUNG (chữ), có thể mờ tới
- * trong suốt hẳn. Kéo góc dưới-phải để resize tự do, có thể khoá tương
- * tác để không đụng trúng lúc chơi game. */
+ * tối đa hiện 2 dòng cùng lúc. Độ mờ tách NỀN/NỘI DUNG. Kéo góc bất kỳ để
+ * resize. Chạm liên tiếp 4 lần trên dải mỏng đỉnh panel để khoá/mở khoá
+ * RIÊNG panel này (không đụng game khi khoá). */
 public class FloatingReportService extends Service {
 
     private static final int MAX_VISIBLE_ROWS = 2;
@@ -39,6 +38,7 @@ public class FloatingReportService extends Service {
     private WindowManager.LayoutParams params;
     private LinearLayout list;
     private View alertView;
+    private PanelLockStrip lockStrip;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable poller = this::poll;
 
@@ -58,10 +58,6 @@ public class FloatingReportService extends Service {
 
     public static void updateTextColor(Context ctx) {
         if (instance != null) instance.applyContentOpacity();
-    }
-
-    public static void updateLocked(Context ctx) {
-        if (instance != null) instance.applyLocked();
     }
 
     public static void injectDemo() {
@@ -84,27 +80,22 @@ public class FloatingReportService extends Service {
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 : WindowManager.LayoutParams.TYPE_PHONE;
 
-        int flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-        if (Prefs.locked(this)) flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-
         params = new WindowManager.LayoutParams(
                 dp(Prefs.reportSizeDp(this)), dp(Prefs.reportHeightDp(this)),
-                type, flags,
+                type, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.TOP | Gravity.START;
         params.x = 20;
         params.y = 100;
 
-        floatView.findViewById(R.id.dragHandleReport)
-                .setOnTouchListener(new DragTouchListener(params, wm, floatView, () -> LockManager.setLocked(this, true)));
-
-        wireCornerResize();
-
         wm.addView(floatView, params);
         applyBgOpacity();
         applyContentOpacity();
-        applyLocked();
-        LockBubble.acquire(this);
+
+        lockStrip = new PanelLockStrip(this, wm, floatView, params, "report");
+        lockStrip.attach();
+
+        wireCornerResize();
         handler.post(poller);
     }
 
@@ -113,6 +104,7 @@ public class FloatingReportService extends Service {
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setReportSizeDp(this, pxToDp(w));
             Prefs.setReportHeightDp(this, pxToDp(h));
+            if (lockStrip != null) lockStrip.syncAfterResize();
         };
         bindCorner(R.id.resizeReportTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized);
         bindCorner(R.id.resizeReportTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized);
@@ -131,37 +123,24 @@ public class FloatingReportService extends Service {
         params.width = dp(Prefs.reportSizeDp(this));
         params.height = dp(Prefs.reportHeightDp(this));
         wm.updateViewLayout(floatView, params);
+        if (lockStrip != null) lockStrip.syncAfterResize();
     }
 
-    /** Chỉ làm mờ NỀN (khung) — chữ/nội dung bên trong vẫn giữ nguyên độ rõ. */
     private void applyBgOpacity() {
         if (panel == null) return;
         Drawable bg = panel.getBackground();
-        if (bg != null) {
-            bg.mutate().setAlpha((int) (Prefs.reportBgOpacity(this) / 100f * 255));
-        }
+        if (bg != null) bg.mutate().setAlpha((int) (Prefs.reportBgOpacity(this) / 100f * 255));
     }
 
-    /** Chỉ làm mờ NỘI DUNG (từng dòng chữ) — nền/khung vẫn giữ nguyên độ rõ. */
     private void applyContentOpacity() {
         if (list == null) return;
         float alpha = Prefs.reportContentOpacity(this) / 100f;
+        int color = Prefs.textColor(this);
         for (int i = 0; i < list.getChildCount(); i++) {
-            list.getChildAt(i).setAlpha(alpha);
+            View child = list.getChildAt(i);
+            child.setAlpha(alpha);
+            if (child instanceof TextView) ((TextView) child).setTextColor(color);
         }
-    }
-
-    private void applyLocked() {
-        if (params == null || floatView == null || wm == null) return;
-        boolean locked = Prefs.locked(this);
-        if (locked) {
-            params.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-        } else {
-            params.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-        }
-        wm.updateViewLayout(floatView, params);
-        // Không còn thanh tiêu đề hiển thị chữ nữa — trạng thái khoá chỉ còn
-        // thể hiện qua nút 🔒/🔓 ở góc màn hình.
     }
 
     private int dp(int v) {
@@ -188,7 +167,6 @@ public class FloatingReportService extends Service {
 
             @Override
             public void onError(String message) {
-                // im lặng bỏ qua lỗi mạng tạm thời, tự thử lại ở lần poll sau
             }
         });
         handler.postDelayed(poller, 5000);
@@ -200,9 +178,6 @@ public class FloatingReportService extends Service {
         showAlert(120000, "TRAN THI B UNG HO STREAM DEMO");
     }
 
-    /** Thêm 1 dòng — tối đa MAX_VISIBLE_ROWS dòng hiện cùng lúc (dòng cũ
-     * nhất bị đẩy ra khi vượt), và mỗi dòng tự biến mất sau ROW_LIFETIME_MS
-     * nếu chưa bị đẩy ra trước đó. */
     private void addRow(long amount, String description) {
         TextView tv = new TextView(this);
         tv.setText(String.format("+%,d đ\n%s", amount, description));
@@ -276,7 +251,7 @@ public class FloatingReportService extends Service {
         running = false;
         instance = null;
         handler.removeCallbacks(poller);
-        LockBubble.release();
+        if (lockStrip != null) lockStrip.detach();
         if (alertView != null) {
             try { wm.removeView(alertView); } catch (Exception ignored) {}
         }
