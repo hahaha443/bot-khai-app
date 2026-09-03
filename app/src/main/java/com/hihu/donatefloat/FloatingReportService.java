@@ -94,6 +94,7 @@ public class FloatingReportService extends Service {
 
         floatView.findViewById(R.id.dragHandleReport)
                 .setOnTouchListener(new DragLockListener(this, params, wm, floatView, "report"));
+        list.setOnTouchListener(new TapLockListener(this, "report", null));
 
         wireCornerResize();
         handler.post(poller);
@@ -160,6 +161,11 @@ public class FloatingReportService extends Service {
                         showAlert(t.amount, t.description);
                         Prefs.setLastSeenId(FloatingReportService.this, t.id);
                     }
+                    if (result.length > 0) {
+                        // Có giao dịch mới -> báo luôn menu Mục tiêu cập nhật ngay,
+                        // không đợi chu kỳ poll riêng của nó (đỡ delay).
+                        FloatingGoalService.refreshNow(FloatingReportService.this);
+                    }
                 });
             }
 
@@ -167,7 +173,7 @@ public class FloatingReportService extends Service {
             public void onError(String message) {
             }
         });
-        handler.postDelayed(poller, 5000);
+        handler.postDelayed(poller, 3000);
     }
 
     private void doInjectDemo() {

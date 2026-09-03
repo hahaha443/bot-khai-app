@@ -32,6 +32,7 @@ public class FloatingQRService extends Service {
     private View floatView;
     private WindowManager.LayoutParams params;
     private ImageView qrImage;
+    private android.widget.LinearLayout qrPanel;
     private TextView statusText;
     
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -56,6 +57,7 @@ public class FloatingQRService extends Service {
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         floatView = LayoutInflater.from(this).inflate(R.layout.floating_qr, null);
         qrImage = floatView.findViewById(R.id.imageQr);
+        qrPanel = floatView.findViewById(R.id.qrPanel);
         statusText = floatView.findViewById(R.id.textQrStatus);
 
         int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
@@ -75,6 +77,7 @@ public class FloatingQRService extends Service {
 
         floatView.findViewById(R.id.dragHandleQr)
                 .setOnTouchListener(new DragLockListener(this, params, wm, floatView, "qr"));
+        qrImage.setOnTouchListener(new TapLockListener(this, "qr", null));
 
         wireCornerResize();
         loadStaticQr();
@@ -143,8 +146,10 @@ public class FloatingQRService extends Service {
     }
 
     private void applyOpacity() {
-        if (floatView == null) return;
-        floatView.setAlpha(Prefs.qrOpacity(this) / 100f);
+        if (qrPanel == null) return;
+        android.graphics.drawable.Drawable bg = qrPanel.getBackground();
+        if (bg != null) bg.mutate().setAlpha((int) (Prefs.qrOpacity(this) / 100f * 255));
+        // qrImage KHÔNG bị mờ theo — luôn giữ rõ để quét được, chỉ mờ nền panel.
     }
 
     private int dp(int v) {

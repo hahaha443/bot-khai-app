@@ -71,21 +71,6 @@ public class MainActivity extends AppCompatActivity {
             toggleService(FloatingQRService.class, FloatingQRService.isRunning());
         });
 
-        // ─── Kích thước ───
-        SeekBar reportSize = findViewById(R.id.seekReportSize);
-        reportSize.setProgress(Prefs.reportSizeDp(this));
-        reportSize.setOnSeekBarChangeListener(new SimpleSeek(v -> {
-            Prefs.setReportSizeDp(this, Math.max(v, 60));
-            FloatingReportService.updateSize(this);
-        }));
-
-        SeekBar qrSize = findViewById(R.id.seekQrSize);
-        qrSize.setProgress(Prefs.qrSizeDp(this));
-        qrSize.setOnSeekBarChangeListener(new SimpleSeek(v -> {
-            Prefs.setQrSizeDp(this, Math.max(v, 60));
-            FloatingQRService.updateSize(this);
-        }));
-
         // ─── Độ mờ ───
         SeekBar reportBgOpacity = findViewById(R.id.seekReportBgOpacity);
         reportBgOpacity.setProgress(Prefs.reportBgOpacity(this));
@@ -166,18 +151,18 @@ public class MainActivity extends AppCompatActivity {
                     FloatingNoteService.updateTextColor(this);
                 }));
 
-        SeekBar noteSize = findViewById(R.id.seekNoteSize);
-        noteSize.setProgress(Prefs.noteSizeDp(this));
-        noteSize.setOnSeekBarChangeListener(new SimpleSeek(v -> {
-            Prefs.setNoteSizeDp(this, Math.max(v, 60));
-            FloatingNoteService.updateSize(this);
+        SeekBar noteBgOpacity = findViewById(R.id.seekNoteBgOpacity);
+        noteBgOpacity.setProgress(Prefs.noteBgOpacity(this));
+        noteBgOpacity.setOnSeekBarChangeListener(new SimpleSeek(v -> {
+            Prefs.setNoteBgOpacity(this, v);
+            FloatingNoteService.updateBgOpacity(this);
         }));
 
-        SeekBar noteOpacity = findViewById(R.id.seekNoteOpacity);
-        noteOpacity.setProgress(Prefs.noteOpacity(this));
-        noteOpacity.setOnSeekBarChangeListener(new SimpleSeek(v -> {
-            Prefs.setNoteOpacity(this, v);
-            FloatingNoteService.updateOpacity(this);
+        SeekBar noteContentOpacity = findViewById(R.id.seekNoteContentOpacity);
+        noteContentOpacity.setProgress(Prefs.noteContentOpacity(this));
+        noteContentOpacity.setOnSeekBarChangeListener(new SimpleSeek(v -> {
+            Prefs.setNoteContentOpacity(this, v);
+            FloatingNoteService.updateContentOpacity(this);
         }));
 
         renderNoteList();
@@ -214,13 +199,6 @@ public class MainActivity extends AppCompatActivity {
             }
             toggleService(FloatingGoalService.class, FloatingGoalService.isRunning());
         });
-
-        SeekBar goalSize = findViewById(R.id.seekGoalSize);
-        goalSize.setProgress(Prefs.goalSizeDp(this));
-        goalSize.setOnSeekBarChangeListener(new SimpleSeek(v -> {
-            Prefs.setGoalSizeDp(this, Math.max(v, 80));
-            FloatingGoalService.updateSize(this);
-        }));
 
         SeekBar goalOpacity = findViewById(R.id.seekGoalOpacity);
         goalOpacity.setProgress(Prefs.goalOpacity(this));

@@ -43,6 +43,14 @@ public class FloatingNoteService extends Service {
         if (instance != null) instance.applyAllOpacity();
     }
 
+    public static void updateBgOpacity(Context ctx) {
+        if (instance != null) instance.applyAllOpacity();
+    }
+
+    public static void updateContentOpacity(Context ctx) {
+        if (instance != null) instance.applyAllOpacity();
+    }
+
     public static void updateTextColor(Context ctx) {
         if (instance != null) instance.applyAllTextColor();
     }
@@ -92,7 +100,7 @@ public class FloatingNoteService extends Service {
         params.x = 20 + (index * 24);
         params.y = 560 + (index * 24);
         floatView.setTag(params);
-        floatView.setAlpha(Prefs.noteOpacity(this) / 100f);
+        applyOpacityFor(floatView);
 
         try {
             wm.addView(floatView, params);
@@ -104,6 +112,7 @@ public class FloatingNoteService extends Service {
         String lockKey = "note_" + id;
         floatView.findViewById(R.id.dragHandleNote)
                 .setOnTouchListener(new DragLockListener(this, params, wm, floatView, lockKey));
+        contentView.setOnTouchListener(new TapLockListener(this, lockKey, null));
 
         int min = dp(60);
         CornerResizeListener.OnResized onResized = (w, h) -> {
@@ -132,7 +141,17 @@ public class FloatingNoteService extends Service {
     }
 
     private void applyAllOpacity() {
-        for (View v : windows) v.setAlpha(Prefs.noteOpacity(this) / 100f);
+        for (View v : windows) applyOpacityFor(v);
+    }
+
+    /** Tách riêng: mờ NỀN (khung) không đụng chữ, mờ NỘI DUNG (chữ) không đụng nền. */
+    private void applyOpacityFor(View floatView) {
+        android.view.ViewGroup panel = floatView.findViewById(R.id.notePanel);
+        if (panel != null && panel.getBackground() != null) {
+            panel.getBackground().mutate().setAlpha((int) (Prefs.noteBgOpacity(this) / 100f * 255));
+        }
+        TextView tv = floatView.findViewById(R.id.noteContent);
+        if (tv != null) tv.setAlpha(Prefs.noteContentOpacity(this) / 100f);
     }
 
     private void applyAllTextColor() {

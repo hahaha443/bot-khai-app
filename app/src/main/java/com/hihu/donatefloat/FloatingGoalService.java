@@ -50,6 +50,10 @@ public class FloatingGoalService extends Service {
         if (instance != null) instance.applyConfig();
     }
 
+    public static void refreshNow(Context ctx) {
+        if (instance != null) instance.refreshImmediate();
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -84,6 +88,7 @@ public class FloatingGoalService extends Service {
 
         floatView.findViewById(R.id.dragHandleGoal)
                 .setOnTouchListener(new DragLockListener(this, params, wm, floatView, "goal"));
+        currentView.setOnTouchListener(new TapLockListener(this, "goal", null));
 
         int min = dp(120);
         CornerResizeListener.OnResized onResized = (w, h) -> {
@@ -126,6 +131,18 @@ public class FloatingGoalService extends Service {
     }
 
     private void poll() {
+        doFetch();
+        handler.removeCallbacks(poller);
+        handler.postDelayed(poller, 30_000);
+    }
+
+    /** Gọi ngay khi Báo cáo báo có giao dịch mới — không đụng vào lịch
+     * postDelayed định kỳ, tránh nhân đôi bộ đếm. */
+    public void refreshImmediate() {
+        doFetch();
+    }
+
+    private void doFetch() {
         ApiClient.getStats(this, "today", new ApiClient.Callback<ApiClient.Stats>() {
             @Override
             public void onSuccess(ApiClient.Stats result) {
@@ -136,28 +153,12 @@ public class FloatingGoalService extends Service {
                     int percent = (int) Math.min(100, (result.total * 100L) / goal);
                     progressBar.setProgress((int) Math.min(1000, (result.total * 1000L) / goal));
                     percentInBar.setText(percent + "%");
-                    positionPercentLabel(percent);
                 });
             }
 
             @Override
             public void onError(String message) {
             }
-        });
-        handler.postDelayed(poller, 30_000);
-    }
-
-    /** Đặt vị trí chữ % NẰM NGAY TRONG thanh tiến trình, trượt theo đúng
-     * điểm donate tới đâu (bám theo mép fill), không cố định giữa thanh. */
-    private void positionPercentLabel(int percent) {
-        progressBar.post(() -> {
-            int barWidth = progressBar.getWidth();
-            if (barWidth == 0) return;
-            int labelWidth = percentInBar.getWidth();
-            if (labelWidth == 0) labelWidth = dp(28);
-            float fillX = (percent / 100f) * barWidth;
-            float targetX = Math.max(4, Math.min(barWidth - labelWidth - 4, fillX - labelWidth / 2f));
-            percentInBar.setTranslationX(targetX);
         });
     }
 

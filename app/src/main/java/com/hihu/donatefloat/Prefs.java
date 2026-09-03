@@ -141,12 +141,20 @@ public class Prefs {
         sp(ctx).edit().putInt("note_height_dp", v).apply();
     }
 
-    public static int noteOpacity(Context ctx) {
-        return sp(ctx).getInt("note_opacity", 90);
+    public static int noteBgOpacity(Context ctx) {
+        return sp(ctx).getInt("note_bg_opacity", 90);
     }
 
-    public static void setNoteOpacity(Context ctx, int v) {
-        sp(ctx).edit().putInt("note_opacity", v).apply();
+    public static void setNoteBgOpacity(Context ctx, int v) {
+        sp(ctx).edit().putInt("note_bg_opacity", v).apply();
+    }
+
+    public static int noteContentOpacity(Context ctx) {
+        return sp(ctx).getInt("note_content_opacity", 100);
+    }
+
+    public static void setNoteContentOpacity(Context ctx, int v) {
+        sp(ctx).edit().putInt("note_content_opacity", v).apply();
     }
 
     // ─── Màu chữ RIÊNG từng loại menu ───

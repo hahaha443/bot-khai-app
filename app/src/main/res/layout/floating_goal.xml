@@ -94,6 +94,7 @@
                 android:id="@+id/goalPercentInBar"
                 android:layout_width="wrap_content"
                 android:layout_height="18dp"
+                android:layout_gravity="center"
                 android:gravity="center"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold"
