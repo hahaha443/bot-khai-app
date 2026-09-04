@@ -57,14 +57,30 @@
                 android:text="0 lượt" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/goalCurrentView"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:textColor="#00E5FF"
-            android:textStyle="bold"
-            android:textSize="16sp" />
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/goalCurrentView"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="#00E5FF"
+                android:textStyle="bold"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/goalTargetView"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end|bottom"
+                android:textColor="#999999"
+                android:textSize="12sp" />
+        </LinearLayout>
 
         <FrameLayout
             android:layout_width="match_parent"

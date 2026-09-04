@@ -31,7 +31,7 @@ public class FloatingGoalService extends Service {
     private WindowManager wm;
     private View floatView;
     private WindowManager.LayoutParams params;
-    private TextView titleView, subtitleView, countBadge, percentInBar, currentView;
+    private TextView titleView, subtitleView, countBadge, percentInBar, currentView, targetView;
     private ProgressBar progressBar;
     private LockButtonWindow lockButton;
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -79,6 +79,7 @@ public class FloatingGoalService extends Service {
         titleView = floatView.findViewById(R.id.goalTitleView);
         subtitleView = floatView.findViewById(R.id.goalSubtitleView);
         currentView = floatView.findViewById(R.id.goalCurrentView);
+        targetView = floatView.findViewById(R.id.goalTargetView);
         countBadge = floatView.findViewById(R.id.goalCountBadge);
         percentInBar = floatView.findViewById(R.id.goalPercentInBar);
         progressBar = floatView.findViewById(R.id.goalProgressBar);
@@ -128,7 +129,7 @@ public class FloatingGoalService extends Service {
     private void applyConfig() {
         titleView.setText(Prefs.goalTitle(this));
         titleView.setTextColor(Prefs.goalTextColor(this));
-        // (đã bỏ hiển thị số tiền hiện tại/mục tiêu dạng chữ theo yêu cầu — chỉ còn % trong thanh)
+        targetView.setText(String.format("Mục tiêu %,d đ", Prefs.goalAmount(this)));
         String note = Prefs.goalNote(this);
         subtitleView.setText(note);
         subtitleView.setVisibility(note.isEmpty() ? View.GONE : View.VISIBLE);
@@ -165,7 +166,7 @@ public class FloatingGoalService extends Service {
             public void onSuccess(ApiClient.Stats result) {
                 handler.post(() -> {
                     long goal = Math.max(1, Prefs.goalAmount(FloatingGoalService.this));
-                    currentView.setText(String.format("%,d đ  •  Mục tiêu %,d đ", result.total, goal));
+                    currentView.setText(String.format("%,d đ", result.total));
                     countBadge.setText(result.count + " lượt");
                     int percent = (int) Math.min(100, (result.total * 100L) / goal);
                     progressBar.setProgress((int) Math.min(1000, (result.total * 1000L) / goal));
