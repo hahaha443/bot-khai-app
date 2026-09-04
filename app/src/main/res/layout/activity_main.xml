@@ -2,39 +2,61 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_root"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:scrollbars="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingBottom="28dp">
+        android:paddingBottom="24dp">
 
-        <!-- Header gradient -->
+        <!-- Modern Compact Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:background="@drawable/bg_header_gradient"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:paddingTop="28dp"
-            android:paddingBottom="22dp">
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:paddingTop="20dp"
+            android:paddingBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="✦ Donate Float"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold"
+                    android:textSize="20sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_stat_chip"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:text="OVERLAYS"
+                    android:textColor="@color/accent_cyan"
+                    android:textStyle="bold"
+                    android:textSize="10sp" />
+            </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="💜 Donate Float"
-                android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:textSize="22sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Quản lý các menu nổi hiển thị đè lên mọi ứng dụng"
-                android:textColor="#E6FFFFFF"
+                android:layout_marginTop="3dp"
+                android:text="Quản lý bảng nổi đè màn hình khi live stream &amp; chơi game"
+                android:textColor="@color/text_secondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -42,39 +64,49 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp">
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp">
 
-            <!-- Ẩn/hiện tạm tất cả -->
+            <!-- 1. Thao tác nhanh -->
             <LinearLayout style="@style/SectionCard">
-                <TextView style="@style/SectionTitle" android:text="🙈  Ẩn nhanh khi share màn hình" />
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="11sp"
-                    android:textColor="@color/text_hint"
-                    android:layout_marginBottom="8dp"
-                    android:text="Ẩn tạm toàn bộ menu nổi (không tắt hẳn, giữ nguyên vị trí/cấu hình) — bật lại chỉ 1 chạm." />
+                <TextView style="@style/SectionTitle" android:text="⚡  Thao tác nhanh" />
+
                 <Button
                     android:id="@+id/btnHideAllOverlays"
                     style="@style/BtnFlat"
                     android:layout_marginTop="0dp"
-                    android:text="🙈  Ẩn tạm tất cả menu" />
+                    android:text="🙈  Ẩn tạm tất cả menu (share màn hình)" />
 
-                <Button
-                    android:id="@+id/btnResetSizes"
-                    style="@style/BtnFlat"
-                    android:text="📐  Reset kích thước tất cả menu về mặc định" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="6dp">
 
-                <Button
-                    android:id="@+id/btnCopyServerInfo"
-                    style="@style/BtnFlat"
-                    android:text="📋  Sao chép URL server + token" />
+                    <Button
+                        android:id="@+id/btnResetSizes"
+                        style="@style/BtnFlat"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginTop="0dp"
+                        android:textSize="12sp"
+                        android:text="📐 Reset kích thước" />
+
+                    <Button
+                        android:id="@+id/btnCopyServerInfo"
+                        style="@style/BtnFlat"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginTop="0dp"
+                        android:textSize="12sp"
+                        android:text="📋 Copy URL + Token" />
+                </LinearLayout>
             </LinearLayout>
 
-            <!-- Cấu hình server -->
+            <!-- 2. Cấu hình Server & Quyền -->
             <LinearLayout style="@style/SectionCard">
-                <TextView style="@style/SectionTitle" android:text="🌐  Cấu hình server" />
+                <TextView style="@style/SectionTitle" android:text="🌐  Cấu hình server &amp; kết nối" />
 
                 <EditText
                     android:id="@+id/editServerUrl"
@@ -91,56 +123,72 @@
                 <Button
                     android:id="@+id/btnSaveConfig"
                     style="@style/BtnPrimary"
-                    android:text="Lưu cấu hình" />
+                    android:text="Lưu cấu hình kết nối" />
 
                 <TextView
                     android:id="@+id/textStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
-
-                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textSize="11sp"
-                    android:textColor="@color/text_hint"
-                    android:text="Quyền hiển thị nổi/thông báo tự kiểm tra và tự dẫn tới màn cấp quyền khi mở app, không cần bấm gì." />
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_stat_chip"
+                    android:padding="8dp"
+                    android:textColor="@color/accent_cyan"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Chung -->
+            <!-- 3. Cài đặt chung -->
             <LinearLayout style="@style/SectionCard">
-                <TextView style="@style/SectionTitle" android:text="⚙️  Chung" />
+                <TextView style="@style/SectionTitle" android:text="⚙️  Cài đặt chung" />
 
                 <CheckBox
                     android:id="@+id/checkAutoStart"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="@color/text_primary"
-                    android:text="Tự bật cả 2 menu khi mở app" />
+                    android:textSize="13sp"
+                    android:buttonTint="@color/accent_primary"
+                    android:text="Tự bật các menu nổi khi mở app" />
 
                 <TextView
                     android:id="@+id/textLockHint"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/bg_stat_chip"
+                    android:padding="10dp"
                     android:textSize="11sp"
-                    android:textColor="@color/text_hint" />
+                    android:textColor="@color/text_secondary" />
             </LinearLayout>
 
-            <!-- Báo cáo giao dịch -->
+            <!-- 4. Menu Báo cáo giao dịch -->
             <LinearLayout style="@style/SectionCard">
                 <TextView style="@style/SectionTitle" android:text="📊  Menu Báo cáo giao dịch" />
 
-                <Button
-                    android:id="@+id/btnToggleReport"
-                    style="@style/BtnFlat"
-                    android:layout_marginTop="0dp"
-                    android:text="Bật / tắt menu Báo cáo" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
 
-                <TextView style="@style/SliderLabel" android:text="Độ mờ NỀN bảng Báo cáo (chữ vẫn rõ)" />
+                    <Button
+                        android:id="@+id/btnToggleReport"
+                        style="@style/BtnFlat"
+                        android:layout_width="0dp"
+                        android:layout_weight="3"
+                        android:layout_marginTop="0dp"
+                        android:text="Bật / Tắt Báo cáo" />
+
+                    <Button
+                        android:id="@+id/btnColorReport"
+                        style="@style/BtnFlat"
+                        android:layout_width="0dp"
+                        android:layout_weight="2"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginTop="0dp"
+                        android:text="🎨 Màu chữ" />
+                </LinearLayout>
+
+                <TextView style="@style/SliderLabel" android:text="Độ mờ NỀN bảng Báo cáo" />
                 <SeekBar
                     android:id="@+id/seekReportBgOpacity"
                     android:layout_width="match_parent"
@@ -150,7 +198,7 @@
                     android:max="100"
                     android:min="0" />
 
-                <TextView style="@style/SliderLabel" android:text="Độ mờ NỘI DUNG bảng Báo cáo (nền vẫn rõ)" />
+                <TextView style="@style/SliderLabel" android:text="Độ mờ NỘI DUNG bảng Báo cáo" />
                 <SeekBar
                     android:id="@+id/seekReportContentOpacity"
                     android:layout_width="match_parent"
@@ -159,52 +207,59 @@
                     android:thumbTint="@color/accent_cyan"
                     android:max="100"
                     android:min="0" />
-
-                <Button
-                    android:id="@+id/btnColorReport"
-                    style="@style/BtnFlat"
-                    android:text="🎨  Màu chữ Báo cáo" />
             </LinearLayout>
 
-            <!-- QR + alert -->
+            <!-- 5. Menu QR chuyển khoản & Demo test -->
             <LinearLayout style="@style/SectionCard">
                 <TextView style="@style/SectionTitle" android:text="🔳  Menu QR chuyển khoản" />
 
-                <Button
-                    android:id="@+id/btnToggleQR"
-                    style="@style/BtnFlat"
-                    android:layout_marginTop="0dp"
-                    android:text="Bật / tắt menu QR" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnToggleQR"
+                        style="@style/BtnFlat"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginTop="0dp"
+                        android:text="Bật / Tắt QR" />
+
+                    <Button
+                        android:id="@+id/btnDemo"
+                        style="@style/BtnWarn"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginTop="0dp"
+                        android:text="🧪 Xem thử" />
+                </LinearLayout>
 
                 <TextView style="@style/SliderLabel" android:text="Độ mờ bảng QR" />
                 <SeekBar
                     android:id="@+id/seekQrOpacity"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:progressTint="@color/accent_magenta"
-                    android:thumbTint="@color/accent_magenta"
+                    android:progressTint="@color/accent_primary"
+                    android:thumbTint="@color/accent_primary"
                     android:max="100"
                     android:min="20" />
 
-                <TextView style="@style/SliderLabel" android:text="Độ mờ popup thông báo giao dịch mới" />
+                <TextView style="@style/SliderLabel" android:text="Độ mờ Popup nạp tiền mới" />
                 <SeekBar
                     android:id="@+id/seekAlertOpacity"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:progressTint="@color/accent_magenta"
-                    android:thumbTint="@color/accent_magenta"
+                    android:progressTint="@color/accent_primary"
+                    android:thumbTint="@color/accent_primary"
                     android:max="100"
                     android:min="20" />
-
-                <Button
-                    android:id="@+id/btnDemo"
-                    style="@style/BtnWarn"
-                    android:text="🧪  Xem thử (bơm dữ liệu demo để canh chỉnh)" />
             </LinearLayout>
 
-            <!-- Ghi chú -->
+            <!-- 6. Menu Ghi chú nổi -->
             <LinearLayout style="@style/SectionCard">
-                <TextView style="@style/SectionTitle" android:text="📝  Menu Ghi chú nổi (nhiều cái cùng lúc)" />
+                <TextView style="@style/SectionTitle" android:text="📝  Menu Ghi chú nổi" />
 
                 <EditText
                     android:id="@+id/editNoteText"
@@ -217,26 +272,40 @@
                 <Button
                     android:id="@+id/btnAddNote"
                     style="@style/BtnPrimary"
-                    android:text="+  Thêm ghi chú mới" />
+                    android:text="+ Thêm ghi chú mới" />
 
                 <LinearLayout
                     android:id="@+id/noteListContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginTop="10dp" />
+                    android:layout_marginTop="8dp" />
 
-                <Button
-                    android:id="@+id/btnColorNote"
-                    style="@style/BtnFlat"
-                    android:text="🎨  Màu chữ Ghi chú" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp">
 
-                <Button
-                    android:id="@+id/btnToggleNote"
-                    style="@style/BtnFlat"
-                    android:text="Bật / tắt tất cả menu Ghi chú" />
+                    <Button
+                        android:id="@+id/btnToggleNote"
+                        style="@style/BtnFlat"
+                        android:layout_width="0dp"
+                        android:layout_weight="3"
+                        android:layout_marginTop="0dp"
+                        android:text="Bật / Tắt Ghi chú" />
 
-                <TextView style="@style/SliderLabel" android:text="Độ mờ NỀN Ghi chú (chữ vẫn rõ)" />
+                    <Button
+                        android:id="@+id/btnColorNote"
+                        style="@style/BtnFlat"
+                        android:layout_width="0dp"
+                        android:layout_weight="2"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginTop="0dp"
+                        android:text="🎨 Màu chữ" />
+                </LinearLayout>
+
+                <TextView style="@style/SliderLabel" android:text="Độ mờ NỀN Ghi chú" />
                 <SeekBar
                     android:id="@+id/seekNoteBgOpacity"
                     android:layout_width="match_parent"
@@ -246,7 +315,7 @@
                     android:max="100"
                     android:min="0" />
 
-                <TextView style="@style/SliderLabel" android:text="Độ mờ NỘI DUNG Ghi chú (nền vẫn rõ)" />
+                <TextView style="@style/SliderLabel" android:text="Độ mờ NỘI DUNG Ghi chú" />
                 <SeekBar
                     android:id="@+id/seekNoteContentOpacity"
                     android:layout_width="match_parent"
@@ -257,9 +326,9 @@
                     android:min="0" />
             </LinearLayout>
 
-            <!-- Thanh đo mục tiêu -->
+            <!-- 7. Thanh đo mục tiêu -->
             <LinearLayout style="@style/SectionCard">
-                <TextView style="@style/SectionTitle" android:text="🎯  Menu Thanh đo mục tiêu" />
+                <TextView style="@style/SectionTitle" android:text="🎯  Thanh đo mục tiêu" />
 
                 <EditText
                     android:id="@+id/editGoalTitle"
@@ -276,8 +345,8 @@
                 <EditText
                     android:id="@+id/editGoalNote"
                     style="@style/FieldInput"
-                    android:hint="Ghi chú thêm dưới thanh (vd: Cảm ơn mọi người đã ủng hộ!)"
-                    android:minLines="2"
+                    android:hint="Ghi chú thêm (vd: Cảm ơn mọi người!)"
+                    android:minLines="1"
                     android:gravity="top" />
 
                 <Button
@@ -285,15 +354,29 @@
                     style="@style/BtnPrimary"
                     android:text="Lưu mục tiêu" />
 
-                <Button
-                    android:id="@+id/btnColorGoal"
-                    style="@style/BtnFlat"
-                    android:text="🎨  Màu chữ Mục tiêu" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp">
 
-                <Button
-                    android:id="@+id/btnToggleGoal"
-                    style="@style/BtnFlat"
-                    android:text="Bật / tắt menu Thanh đo mục tiêu" />
+                    <Button
+                        android:id="@+id/btnToggleGoal"
+                        style="@style/BtnFlat"
+                        android:layout_width="0dp"
+                        android:layout_weight="3"
+                        android:layout_marginTop="0dp"
+                        android:text="Bật / Tắt Mục tiêu" />
+
+                    <Button
+                        android:id="@+id/btnColorGoal"
+                        style="@style/BtnFlat"
+                        android:layout_width="0dp"
+                        android:layout_weight="2"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginTop="0dp"
+                        android:text="🎨 Màu chữ" />
+                </LinearLayout>
 
                 <TextView style="@style/SliderLabel" android:text="Độ mờ menu Mục tiêu" />
                 <SeekBar
@@ -306,10 +389,11 @@
                     android:min="0" />
             </LinearLayout>
 
-            <!-- Thống kê -->
+            <!-- 8. Thống kê & Lịch sử -->
             <LinearLayout style="@style/SectionCard">
-                <TextView style="@style/SectionTitle" android:text="📈  Thống kê" />
+                <TextView style="@style/SectionTitle" android:text="📈  Thống kê &amp; Lịch sử" />
 
+                <!-- Thống kê chia 3 block cân đối -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -317,20 +401,63 @@
                     android:background="@drawable/bg_stat_chip"
                     android:padding="12dp">
 
-                    <TextView android:id="@+id/textStatToday" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="@color/text_primary" android:paddingBottom="4dp" android:text="Hôm nay: —" />
-                    <TextView android:id="@+id/textStatYesterday" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="@color/text_secondary" android:paddingBottom="4dp" android:text="Hôm qua: —" />
-                    <TextView android:id="@+id/textStatBeforeYesterday" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="@color/text_secondary" android:text="Hôm kia: —" />
+                    <TextView
+                        android:id="@+id/textStatToday"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="13sp"
+                        android:textColor="@color/accent_success"
+                        android:textStyle="bold"
+                        android:paddingBottom="6dp"
+                        android:text="Hôm nay: —" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/stroke_soft"
+                        android:layout_marginBottom="6dp" />
+
+                    <TextView
+                        android:id="@+id/textStatYesterday"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="12.5sp"
+                        android:textColor="@color/text_primary"
+                        android:paddingBottom="4dp"
+                        android:text="Hôm qua: —" />
+
+                    <TextView
+                        android:id="@+id/textStatBeforeYesterday"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="12.5sp"
+                        android:textColor="@color/text_secondary"
+                        android:text="Hôm kia: —" />
                 </LinearLayout>
 
-                <Button
-                    android:id="@+id/btnRefreshStats"
-                    style="@style/BtnFlat"
-                    android:text="🔄  Làm mới thống kê" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp">
 
-                <Button
-                    android:id="@+id/btnHistory"
-                    style="@style/BtnFlat"
-                    android:text="📜  Xem lịch sử giao dịch đầy đủ" />
+                    <Button
+                        android:id="@+id/btnRefreshStats"
+                        style="@style/BtnFlat"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginTop="0dp"
+                        android:text="🔄 Làm mới" />
+
+                    <Button
+                        android:id="@+id/btnHistory"
+                        style="@style/BtnFlat"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginTop="0dp"
+                        android:text="📜 Lịch sử đầy đủ" />
+                </LinearLayout>
             </LinearLayout>
 
         </LinearLayout>

@@ -280,7 +280,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void refreshStatus() {
-        statusText.setText("Quyền hiển thị nổi: " + (canDrawOverlays() ? "ĐÃ CẤP" : "CHƯA CẤP"));
+        boolean ok = canDrawOverlays();
+        statusText.setText(ok ? "✓ Quyền hiển thị nổi: ĐÃ CẤP" : "⚠ Quyền hiển thị nổi: CHƯA CẤP (cần cấp)");
+        statusText.setTextColor(ok ? 0xFF10B981 : 0xFFF59E0B);
     }
 
     /** Tự check + tự dẫn thẳng qua màn Settings, không cần bấm nút gì. */
@@ -504,19 +506,29 @@ public class MainActivity extends AppCompatActivity {
 
                 LinearLayout row = new LinearLayout(this);
                 row.setOrientation(LinearLayout.HORIZONTAL);
-                row.setPadding(0, 8, 0, 8);
+                row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                row.setBackgroundResource(R.drawable.bg_stat_chip);
+                int pad = dpToPx(8);
+                row.setPadding(pad, pad, pad, pad);
+                LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                rowLp.topMargin = dpToPx(6);
+                row.setLayoutParams(rowLp);
 
                 TextView tv = new TextView(this);
                 tv.setText(text);
-                tv.setTextSize(12);
-                tv.setTextColor(0xFFF5F6FA);
+                tv.setTextSize(12.5f);
+                tv.setTextColor(0xFFF1F5F9);
                 tv.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
                 Button copy = new Button(this);
                 copy.setText("Copy");
-                copy.setTextSize(10);
-                copy.setTextColor(0xFFFFFFFF);
+                copy.setTextSize(11);
+                copy.setTextColor(0xFFE2E8F0);
                 copy.setBackgroundResource(R.drawable.bg_btn_flat);
+                LinearLayout.LayoutParams copyLp = new LinearLayout.LayoutParams(dpToPx(56), dpToPx(34));
+                copyLp.marginStart = dpToPx(6);
+                copy.setLayoutParams(copyLp);
                 copy.setOnClickListener(v -> {
                     ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
                     cm.setPrimaryClip(ClipData.newPlainText("note", text));
@@ -525,9 +537,12 @@ public class MainActivity extends AppCompatActivity {
 
                 Button del = new Button(this);
                 del.setText("Xoá");
-                del.setTextSize(10);
-                del.setTextColor(0xFFFFFFFF);
+                del.setTextSize(11);
+                del.setTextColor(0xFFFCA5A5);
                 del.setBackgroundResource(R.drawable.bg_btn_warn_small);
+                LinearLayout.LayoutParams delLp = new LinearLayout.LayoutParams(dpToPx(50), dpToPx(34));
+                delLp.marginStart = dpToPx(6);
+                del.setLayoutParams(delLp);
                 del.setOnClickListener(v -> {
                     removeNoteFromList(id);
                     renderNoteList();

@@ -35,7 +35,7 @@ public class Prefs {
     }
 
     public static int reportHeightDp(Context ctx) {
-        return sp(ctx).getInt("report_height_dp", 220);
+        return sp(ctx).getInt("report_height_dp", 200);
     }
 
     public static void setReportHeightDp(Context ctx, int v) {
@@ -43,7 +43,7 @@ public class Prefs {
     }
 
     public static int qrSizeDp(Context ctx) {
-        return sp(ctx).getInt("qr_size_dp", 240);
+        return sp(ctx).getInt("qr_size_dp", 200);
     }
 
     public static void setQrSizeDp(Context ctx, int v) {
@@ -51,7 +51,7 @@ public class Prefs {
     }
 
     public static int qrHeightDp(Context ctx) {
-        return sp(ctx).getInt("qr_height_dp", 300);
+        return sp(ctx).getInt("qr_height_dp", 210);
     }
 
     public static void setQrHeightDp(Context ctx, int v) {

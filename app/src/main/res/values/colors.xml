@@ -1,29 +1,32 @@
 <resources>
-    <!-- Nền -->
-    <color name="bg_root">#0E0F1A</color>
-    <color name="bg_card">#1A1C2B</color>
-    <color name="bg_card_alt">#20233A</color>
-    <color name="bg_input">#262A42</color>
+    <!-- Nền Dark Modern: Obsidian Slate chuyên nghiệp -->
+    <color name="bg_root">#0B0F17</color>
+    <color name="bg_card">#131823</color>
+    <color name="bg_card_alt">#1A2130</color>
+    <color name="bg_input">#161C2A</color>
+    <color name="bg_surface_elevated">#1F2739</color>
 
-    <!-- Accent gradient tím -> xanh cyan, dùng xuyên suốt app -->
-    <color name="accent_primary">#7C4DFF</color>
-    <color name="accent_primary_dark">#5B2EE8</color>
-    <color name="accent_cyan">#00E5FF</color>
-    <color name="accent_magenta">#D500F9</color>
+    <!-- Accent tinh tế, giảm tím chói, tăng cảm giác công nghệ hiện đại -->
+    <color name="accent_primary">#6366F1</color>
+    <color name="accent_primary_dark">#4F46E5</color>
+    <color name="accent_cyan">#38BDF8</color>
+    <color name="accent_magenta">#818CF8</color>
 
-    <color name="accent_warn">#FF9800</color>
-    <color name="accent_danger">#FF5252</color>
-    <color name="accent_success">#4CAF50</color>
+    <color name="accent_warn">#F59E0B</color>
+    <color name="accent_danger">#EF4444</color>
+    <color name="accent_success">#10B981</color>
 
-    <!-- Chữ -->
-    <color name="text_primary">#F5F6FA</color>
-    <color name="text_secondary">#9CA3C4</color>
-    <color name="text_hint">#6B7094</color>
+    <!-- Hệ phân cấp chữ chuẩn WCAG AAA - rõ nét tuyệt đối -->
+    <color name="text_primary">#F8FAFC</color>
+    <color name="text_secondary">#94A3B8</color>
+    <color name="text_hint">#64748B</color>
 
-    <color name="stroke_soft">#2E324D</color>
+    <!-- Đường viền mỏng tinh tế -->
+    <color name="stroke_soft">#222B3D</color>
+    <color name="stroke_subtle">#1A2232</color>
 
-    <!-- Giữ tương thích ngược nếu còn nơi tham chiếu -->
-    <color name="purple_500">#FF7C4DFF</color>
-    <color name="purple_700">#FF5B2EE8</color>
-    <color name="teal_200">#FF00E5FF</color>
+    <!-- Giữ tương thích ngược -->
+    <color name="purple_500">#6366F1</color>
+    <color name="purple_700">#4F46E5</color>
+    <color name="teal_200">#38BDF8</color>
 </resources>

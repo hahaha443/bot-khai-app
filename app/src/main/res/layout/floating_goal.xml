@@ -75,7 +75,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textColor="#00E5FF"
+                android:textColor="#38BDF8"
                 android:textStyle="bold"
                 android:textSize="18sp" />
 
@@ -85,7 +85,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:gravity="end|bottom"
-                android:textColor="#999999"
+                android:textColor="#94A3B8"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -120,16 +120,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:textColor="#7C4DFF"
+            android:textColor="#818CF8"
             android:textStyle="bold"
-            android:textSize="11sp" />
+            android:textSize="11.5sp" />
 
         <TextView
             android:id="@+id/goalSubtitleView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textColor="#AAAAAA"
+            android:textColor="#CBD5E1"
             android:textSize="11sp" />
 
         </LinearLayout>

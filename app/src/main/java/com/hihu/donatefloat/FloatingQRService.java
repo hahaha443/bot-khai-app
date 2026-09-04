@@ -51,8 +51,8 @@ public class FloatingQRService extends Service {
     }
 
     public static void resetSize(Context ctx) {
-        Prefs.setQrSizeDp(ctx, 240);
-        Prefs.setQrHeightDp(ctx, 300);
+        Prefs.setQrSizeDp(ctx, 200);
+        Prefs.setQrHeightDp(ctx, 210);
         if (instance != null) instance.applySize();
     }
 
@@ -83,7 +83,7 @@ public class FloatingQRService extends Service {
                 PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.TOP | Gravity.START;
         params.x = 20;
-        params.y = 340;
+        params.y = 320;
 
         applyOpacity();
         wm.addView(floatView, params);

@@ -5,19 +5,19 @@
             <gradient
                 android:type="linear"
                 android:angle="45"
-                android:startColor="#00E5FF"
-                android:centerColor="#7C4DFF"
-                android:endColor="#D500F9" />
+                android:startColor="#38BDF8"
+                android:centerColor="#6366F1"
+                android:endColor="#818CF8" />
         </shape>
     </item>
     <item
-        android:top="2dp"
-        android:left="2dp"
-        android:right="2dp"
-        android:bottom="2dp">
+        android:top="1.5dp"
+        android:left="1.5dp"
+        android:right="1.5dp"
+        android:bottom="1.5dp">
         <shape android:shape="rectangle">
-            <corners android:radius="12dp" />
-            <solid android:color="#DD141414" />
+            <corners android:radius="12.5dp" />
+            <solid android:color="#F2101522" />
         </shape>
     </item>
 </layer-list>

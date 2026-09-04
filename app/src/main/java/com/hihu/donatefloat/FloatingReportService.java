@@ -57,7 +57,7 @@ public class FloatingReportService extends Service {
 
     public static void resetSize(Context ctx) {
         Prefs.setReportSizeDp(ctx, 280);
-        Prefs.setReportHeightDp(ctx, 220);
+        Prefs.setReportHeightDp(ctx, 200);
         if (instance != null) instance.applySize();
     }
 
@@ -237,7 +237,7 @@ public class FloatingReportService extends Service {
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                 PixelFormat.TRANSLUCENT);
         alertParams.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-        alertParams.y = 60;
+        alertParams.y = 16;
 
         final View toRemove = alertView;
         wm.addView(alertView, alertParams);

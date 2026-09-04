@@ -96,7 +96,7 @@ public class FloatingGoalService extends Service {
                 type, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.TOP | Gravity.START;
         params.x = 20;
-        params.y = 780;
+        params.y = 660;
 
         applyConfig();
         applyOpacity();
