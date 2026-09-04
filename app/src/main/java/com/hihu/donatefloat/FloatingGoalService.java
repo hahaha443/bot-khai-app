@@ -31,7 +31,7 @@ public class FloatingGoalService extends Service {
     private WindowManager wm;
     private View floatView;
     private WindowManager.LayoutParams params;
-    private TextView titleView, currentView, targetView, subtitleView, countBadge, percentInBar;
+    private TextView titleView, subtitleView, countBadge, percentInBar;
     private ProgressBar progressBar;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable poller = this::poll;
@@ -45,6 +45,12 @@ public class FloatingGoalService extends Service {
     }
 
     public static void updateSize(Context ctx) {
+        if (instance != null) instance.applySize();
+    }
+
+    public static void resetSize(Context ctx) {
+        Prefs.setGoalSizeDp(ctx, 300);
+        Prefs.setGoalHeightDp(ctx, 110);
         if (instance != null) instance.applySize();
     }
 
@@ -70,8 +76,6 @@ public class FloatingGoalService extends Service {
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         floatView = LayoutInflater.from(this).inflate(R.layout.floating_goal, null);
         titleView = floatView.findViewById(R.id.goalTitleView);
-        currentView = floatView.findViewById(R.id.goalCurrentView);
-        targetView = floatView.findViewById(R.id.goalTargetView);
         subtitleView = floatView.findViewById(R.id.goalSubtitleView);
         countBadge = floatView.findViewById(R.id.goalCountBadge);
         percentInBar = floatView.findViewById(R.id.goalPercentInBar);
@@ -95,33 +99,32 @@ public class FloatingGoalService extends Service {
 
         View dragHandleGoal = floatView.findViewById(R.id.dragHandleGoal);
         dragHandleGoal.setOnTouchListener(new DragLockListener(this, params, wm, floatView, "goal"));
-        LockVisuals.applyState(dragHandleGoal, this, "goal");
-        currentView.setOnTouchListener(new TapLockListener(this, "goal",
-                () -> LockVisuals.applyState(dragHandleGoal, this, "goal")));
+        LockToggleCounter lockCounter = new LockToggleCounter(this, "goal");
+        floatView.findViewById(R.id.goalContentArea).setOnTouchListener(new TapLockListener(lockCounter));
 
         int min = dp(120);
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setGoalSizeDp(this, pxToDp(w));
             Prefs.setGoalHeightDp(this, pxToDp(h));
         };
-        bindCorner(R.id.resizeGoalTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized);
-        bindCorner(R.id.resizeGoalTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized);
-        bindCorner(R.id.resizeGoalBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, onResized);
-        bindCorner(R.id.resizeGoalBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, onResized);
+        bindCorner(R.id.resizeGoalTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized, lockCounter);
+        bindCorner(R.id.resizeGoalTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized, lockCounter);
+        bindCorner(R.id.resizeGoalBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, onResized, lockCounter);
+        bindCorner(R.id.resizeGoalBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, onResized, lockCounter);
 
         handler.post(poller);
     }
 
     private void bindCorner(int viewId, CornerResizeListener.Corner corner, int min,
-                             CornerResizeListener.OnResized onResized) {
+                             CornerResizeListener.OnResized onResized, LockToggleCounter lockCounter) {
         View v = floatView.findViewById(viewId);
-        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, "goal"));
+        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, "goal", lockCounter));
     }
 
     private void applyConfig() {
         titleView.setText(Prefs.goalTitle(this));
         titleView.setTextColor(Prefs.goalTextColor(this));
-        targetView.setText(String.format("/ %,d đ", Prefs.goalAmount(this)));
+        // (đã bỏ hiển thị số tiền hiện tại/mục tiêu dạng chữ theo yêu cầu — chỉ còn % trong thanh)
         String note = Prefs.goalNote(this);
         subtitleView.setText(note);
         subtitleView.setVisibility(note.isEmpty() ? View.GONE : View.VISIBLE);
@@ -157,7 +160,6 @@ public class FloatingGoalService extends Service {
             public void onSuccess(ApiClient.Stats result) {
                 handler.post(() -> {
                     long goal = Math.max(1, Prefs.goalAmount(FloatingGoalService.this));
-                    currentView.setText(String.format("%,d đ", result.total));
                     countBadge.setText(result.count + " lượt");
                     int percent = (int) Math.min(100, (result.total * 100L) / goal);
                     progressBar.setProgress((int) Math.min(1000, (result.total * 1000L) / goal));

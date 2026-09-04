@@ -60,6 +60,16 @@
                     style="@style/BtnFlat"
                     android:layout_marginTop="0dp"
                     android:text="🙈  Ẩn tạm tất cả menu" />
+
+                <Button
+                    android:id="@+id/btnResetSizes"
+                    style="@style/BtnFlat"
+                    android:text="📐  Reset kích thước tất cả menu về mặc định" />
+
+                <Button
+                    android:id="@+id/btnCopyServerInfo"
+                    style="@style/BtnFlat"
+                    android:text="📋  Sao chép URL server + token" />
             </LinearLayout>
 
             <!-- Cấu hình server -->

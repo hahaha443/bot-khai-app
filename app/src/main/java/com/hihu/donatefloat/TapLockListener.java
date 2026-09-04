@@ -1,31 +1,21 @@
 package com.hihu.donatefloat;
 
-import android.content.Context;
-import android.os.SystemClock;
 import android.view.MotionEvent;
 import android.view.View;
 
-/** Gắn vào vùng NỘI DUNG bên trong menu (không phải thanh kéo ở trên) —
- * chạm nhẹ liên tiếp 3 lần để khoá/mở khoá RIÊNG panel này. Tách biệt
- * khỏi việc kéo di chuyển (nằm ở thanh ngang riêng). */
+/** Gắn vào vùng NỘI DUNG bên trong menu — chạm nhẹ (không kéo) sẽ báo
+ * cho LockToggleCounter dùng CHUNG của panel. Bộ đếm này cũng được chia
+ * sẻ với 4 góc resize, nên chạm 3 lần ở bất kỳ đâu trên panel (nội dung
+ * hay góc) đều cộng dồn để khoá/mở khoá. */
 public class TapLockListener implements View.OnTouchListener {
 
-    private static final long TAP_WINDOW_MS = 1200;
     private static final int TAP_SLOP_PX = 18;
-    private static final int TAPS_TO_TOGGLE = 3;
 
-    private final Context ctx;
-    private final String lockKey;
-    private final Runnable onToggled;
-
+    private final LockToggleCounter counter;
     private float downX, downY;
-    private int tapCount = 0;
-    private long lastTapTime = 0;
 
-    public TapLockListener(Context ctx, String lockKey, Runnable onToggled) {
-        this.ctx = ctx;
-        this.lockKey = lockKey;
-        this.onToggled = onToggled;
+    public TapLockListener(LockToggleCounter counter) {
+        this.counter = counter;
     }
 
     @Override
@@ -38,18 +28,7 @@ public class TapLockListener implements View.OnTouchListener {
             case MotionEvent.ACTION_UP:
                 float dx = Math.abs(event.getRawX() - downX);
                 float dy = Math.abs(event.getRawY() - downY);
-                if (dx < TAP_SLOP_PX && dy < TAP_SLOP_PX) {
-                    long now = SystemClock.elapsedRealtime();
-                    if (now - lastTapTime > TAP_WINDOW_MS) tapCount = 0;
-                    tapCount++;
-                    lastTapTime = now;
-                    if (tapCount >= TAPS_TO_TOGGLE) {
-                        tapCount = 0;
-                        Prefs.setPanelLocked(ctx, lockKey, !Prefs.panelLocked(ctx, lockKey));
-                        LockVisuals.bounce(v);
-                        if (onToggled != null) onToggled.run();
-                    }
-                }
+                if (dx < TAP_SLOP_PX && dy < TAP_SLOP_PX) counter.registerTap();
                 return true;
         }
         return false;

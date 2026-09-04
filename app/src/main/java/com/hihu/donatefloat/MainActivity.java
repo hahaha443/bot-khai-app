@@ -1,5 +1,7 @@
 package com.hihu.donatefloat;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -222,6 +224,23 @@ public class MainActivity extends AppCompatActivity {
             FloatingNoteService.setHidden(newHidden);
             FloatingGoalService.setHidden(newHidden);
             updateHideAllLabel(btnHideAll);
+        });
+
+        // ─── Reset kích thước tất cả menu về mặc định ───
+        findViewById(R.id.btnResetSizes).setOnClickListener(v -> {
+            FloatingReportService.resetSize(this);
+            FloatingQRService.resetSize(this);
+            FloatingNoteService.resetSize(this);
+            FloatingGoalService.resetSize(this);
+            Toast.makeText(this, "Đã đặt lại kích thước mặc định cho tất cả menu", Toast.LENGTH_SHORT).show();
+        });
+
+        // ─── Sao chép nhanh URL server + token để gửi máy khác ───
+        findViewById(R.id.btnCopyServerInfo).setOnClickListener(v -> {
+            String info = "Server: " + Prefs.serverUrl(this) + "\nToken: " + Prefs.apiToken(this);
+            ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            cm.setPrimaryClip(ClipData.newPlainText("donate_float_config", info));
+            Toast.makeText(this, "Đã sao chép URL + token", Toast.LENGTH_SHORT).show();
         });
 
         refreshStatus();

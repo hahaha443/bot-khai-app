@@ -45,6 +45,12 @@ public class FloatingNoteService extends Service {
         if (instance != null) instance.applyAllSize();
     }
 
+    public static void resetSize(Context ctx) {
+        Prefs.setNoteSizeDp(ctx, 220);
+        Prefs.setNoteHeightDp(ctx, 90);
+        if (instance != null) instance.applyAllSize();
+    }
+
     public static void updateOpacity(Context ctx) {
         if (instance != null) instance.applyAllOpacity();
     }
@@ -119,25 +125,25 @@ public class FloatingNoteService extends Service {
         String lockKey = "note_" + id;
         View dragHandleNote = floatView.findViewById(R.id.dragHandleNote);
         dragHandleNote.setOnTouchListener(new DragLockListener(this, params, wm, floatView, lockKey));
-        LockVisuals.applyState(dragHandleNote, this, lockKey);
-        contentView.setOnTouchListener(new TapLockListener(this, lockKey,
-                () -> LockVisuals.applyState(dragHandleNote, this, lockKey)));
+        LockToggleCounter lockCounter = new LockToggleCounter(this, lockKey);
+        contentView.setOnTouchListener(new TapLockListener(lockCounter));
 
         int min = dp(60);
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setNoteSizeDp(this, pxToDp(w));
             Prefs.setNoteHeightDp(this, pxToDp(h));
         };
-        bindCorner(floatView, R.id.resizeNoteTL, CornerResizeListener.Corner.TOP_LEFT, min, params, onResized, lockKey);
-        bindCorner(floatView, R.id.resizeNoteTR, CornerResizeListener.Corner.TOP_RIGHT, min, params, onResized, lockKey);
-        bindCorner(floatView, R.id.resizeNoteBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, params, onResized, lockKey);
-        bindCorner(floatView, R.id.resizeNoteBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, params, onResized, lockKey);
+        bindCorner(floatView, R.id.resizeNoteTL, CornerResizeListener.Corner.TOP_LEFT, min, params, onResized, lockKey, lockCounter);
+        bindCorner(floatView, R.id.resizeNoteTR, CornerResizeListener.Corner.TOP_RIGHT, min, params, onResized, lockKey, lockCounter);
+        bindCorner(floatView, R.id.resizeNoteBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, params, onResized, lockKey, lockCounter);
+        bindCorner(floatView, R.id.resizeNoteBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, params, onResized, lockKey, lockCounter);
     }
 
     private void bindCorner(View floatView, int viewId, CornerResizeListener.Corner corner, int min,
-                             WindowManager.LayoutParams params, CornerResizeListener.OnResized onResized, String lockKey) {
+                             WindowManager.LayoutParams params, CornerResizeListener.OnResized onResized,
+                             String lockKey, LockToggleCounter lockCounter) {
         View v = floatView.findViewById(viewId);
-        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, lockKey));
+        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, lockKey, lockCounter));
     }
 
     private void applyAllSize() {

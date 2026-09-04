@@ -49,6 +49,12 @@ public class FloatingQRService extends Service {
         if (instance != null) instance.applySize();
     }
 
+    public static void resetSize(Context ctx) {
+        Prefs.setQrSizeDp(ctx, 240);
+        Prefs.setQrHeightDp(ctx, 300);
+        if (instance != null) instance.applySize();
+    }
+
     public static void updateOpacity(Context ctx) {
         if (instance != null) instance.applyOpacity();
     }
@@ -84,30 +90,29 @@ public class FloatingQRService extends Service {
 
         View dragHandleQr = floatView.findViewById(R.id.dragHandleQr);
         dragHandleQr.setOnTouchListener(new DragLockListener(this, params, wm, floatView, "qr"));
-        LockVisuals.applyState(dragHandleQr, this, "qr");
-        qrImage.setOnTouchListener(new TapLockListener(this, "qr",
-                () -> LockVisuals.applyState(dragHandleQr, this, "qr")));
+        LockToggleCounter lockCounter = new LockToggleCounter(this, "qr");
+        qrImage.setOnTouchListener(new TapLockListener(lockCounter));
 
-        wireCornerResize();
+        wireCornerResize(lockCounter);
         loadStaticQr();
     }
 
-    private void wireCornerResize() {
+    private void wireCornerResize(LockToggleCounter lockCounter) {
         int min = dp(80);
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setQrSizeDp(this, pxToDp(w));
             Prefs.setQrHeightDp(this, pxToDp(h));
         };
-        bindCorner(R.id.resizeQrTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized);
-        bindCorner(R.id.resizeQrTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized);
-        bindCorner(R.id.resizeQrBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, onResized);
-        bindCorner(R.id.resizeQrBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, onResized);
+        bindCorner(R.id.resizeQrTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized, lockCounter);
+        bindCorner(R.id.resizeQrTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized, lockCounter);
+        bindCorner(R.id.resizeQrBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, onResized, lockCounter);
+        bindCorner(R.id.resizeQrBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, onResized, lockCounter);
     }
 
     private void bindCorner(int viewId, CornerResizeListener.Corner corner, int min,
-                             CornerResizeListener.OnResized onResized) {
+                             CornerResizeListener.OnResized onResized, LockToggleCounter lockCounter) {
         View v = floatView.findViewById(viewId);
-        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, "qr"));
+        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, "qr", lockCounter));
     }
 
     private void loadStaticQr() {

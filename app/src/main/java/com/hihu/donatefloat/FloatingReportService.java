@@ -54,6 +54,12 @@ public class FloatingReportService extends Service {
         if (instance != null) instance.applySize();
     }
 
+    public static void resetSize(Context ctx) {
+        Prefs.setReportSizeDp(ctx, 280);
+        Prefs.setReportHeightDp(ctx, 220);
+        if (instance != null) instance.applySize();
+    }
+
     public static void updateBgOpacity(Context ctx) {
         if (instance != null) instance.applyBgOpacity();
     }
@@ -101,30 +107,29 @@ public class FloatingReportService extends Service {
 
         View dragHandleReport = floatView.findViewById(R.id.dragHandleReport);
         dragHandleReport.setOnTouchListener(new DragLockListener(this, params, wm, floatView, "report"));
-        LockVisuals.applyState(dragHandleReport, this, "report");
-        list.setOnTouchListener(new TapLockListener(this, "report",
-                () -> LockVisuals.applyState(dragHandleReport, this, "report")));
+        LockToggleCounter lockCounter = new LockToggleCounter(this, "report");
+        list.setOnTouchListener(new TapLockListener(lockCounter));
 
-        wireCornerResize();
+        wireCornerResize(lockCounter);
         handler.post(poller);
     }
 
-    private void wireCornerResize() {
+    private void wireCornerResize(LockToggleCounter lockCounter) {
         int min = dp(60);
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setReportSizeDp(this, pxToDp(w));
             Prefs.setReportHeightDp(this, pxToDp(h));
         };
-        bindCorner(R.id.resizeReportTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized);
-        bindCorner(R.id.resizeReportTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized);
-        bindCorner(R.id.resizeReportBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, onResized);
-        bindCorner(R.id.resizeReportBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, onResized);
+        bindCorner(R.id.resizeReportTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized, lockCounter);
+        bindCorner(R.id.resizeReportTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized, lockCounter);
+        bindCorner(R.id.resizeReportBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, onResized, lockCounter);
+        bindCorner(R.id.resizeReportBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, onResized, lockCounter);
     }
 
     private void bindCorner(int viewId, CornerResizeListener.Corner corner, int min,
-                             CornerResizeListener.OnResized onResized) {
+                             CornerResizeListener.OnResized onResized, LockToggleCounter lockCounter) {
         View v = floatView.findViewById(viewId);
-        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, "report"));
+        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, "report", lockCounter));
     }
 
     private void applySize() {

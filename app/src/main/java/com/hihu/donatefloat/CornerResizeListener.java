@@ -7,9 +7,10 @@ import android.view.WindowManager;
 
 /** Cho phép kéo resize từ 1 trong 4 góc, neo góc đối diện đứng yên —
  * không cần icon/nút hiển thị, chỉ cần 1 vùng chạm nhỏ trong suốt đặt ở
- * góc tương ứng. Nếu panel đang bị khoá (lockKey khác null) thì bỏ qua
- * thao tác kéo, không cho resize. Cập nhật kích thước trực tiếp mỗi lần
- * di chuyển ngón tay để luôn phản hồi ngay, không trễ khung hình. */
+ * góc tương ứng. Nếu panel đang bị khoá thì bỏ qua thao tác KÉO (không
+ * resize), nhưng vẫn nhận CHẠM NHẸ để cộng dồn vào bộ đếm khoá/mở khoá
+ * dùng chung của panel (counter) — nhờ vậy chạm 3 lần ở góc cũng khoá/mở
+ * khoá được y như chạm ở vùng nội dung. */
 public class CornerResizeListener implements View.OnTouchListener {
 
     public enum Corner { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT }
@@ -17,6 +18,8 @@ public class CornerResizeListener implements View.OnTouchListener {
     public interface OnResized {
         void onResized(int widthPx, int heightPx);
     }
+
+    private static final int TAP_SLOP_PX = 18;
 
     private final WindowManager.LayoutParams params;
     private final WindowManager wm;
@@ -26,18 +29,19 @@ public class CornerResizeListener implements View.OnTouchListener {
     private final OnResized onResized;
     private final Context ctx;
     private final String lockKey;
+    private final LockToggleCounter counter;
 
     private int initialWidth, initialHeight, initialX, initialY;
     private float initialTouchX, initialTouchY;
 
     public CornerResizeListener(WindowManager.LayoutParams params, WindowManager wm, View target,
                                  Corner corner, int minPx, OnResized onResized) {
-        this(params, wm, target, corner, minPx, onResized, null, null);
+        this(params, wm, target, corner, minPx, onResized, null, null, null);
     }
 
     public CornerResizeListener(WindowManager.LayoutParams params, WindowManager wm, View target,
                                  Corner corner, int minPx, OnResized onResized,
-                                 Context ctx, String lockKey) {
+                                 Context ctx, String lockKey, LockToggleCounter counter) {
         this.params = params;
         this.wm = wm;
         this.target = target;
@@ -46,11 +50,15 @@ public class CornerResizeListener implements View.OnTouchListener {
         this.onResized = onResized;
         this.ctx = ctx;
         this.lockKey = lockKey;
+        this.counter = counter;
+    }
+
+    private boolean isLocked() {
+        return lockKey != null && ctx != null && Prefs.panelLocked(ctx, lockKey);
     }
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-        if (lockKey != null && Prefs.panelLocked(ctx, lockKey)) return true;
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 initialWidth = params.width;
@@ -62,6 +70,7 @@ public class CornerResizeListener implements View.OnTouchListener {
                 return true;
 
             case MotionEvent.ACTION_MOVE: {
+                if (isLocked()) return true;
                 float dx = event.getRawX() - initialTouchX;
                 float dy = event.getRawY() - initialTouchY;
 
@@ -114,9 +123,16 @@ public class CornerResizeListener implements View.OnTouchListener {
                 return true;
             }
 
-            case MotionEvent.ACTION_UP:
-                if (onResized != null) onResized.onResized(params.width, params.height);
+            case MotionEvent.ACTION_UP: {
+                float dx = Math.abs(event.getRawX() - initialTouchX);
+                float dy = Math.abs(event.getRawY() - initialTouchY);
+                if (dx < TAP_SLOP_PX && dy < TAP_SLOP_PX) {
+                    if (counter != null) counter.registerTap();
+                } else if (!isLocked() && onResized != null) {
+                    onResized.onResized(params.width, params.height);
+                }
                 return true;
+            }
         }
         return false;
     }
