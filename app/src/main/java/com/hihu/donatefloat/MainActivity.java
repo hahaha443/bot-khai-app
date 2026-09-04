@@ -512,6 +512,17 @@ public class MainActivity extends AppCompatActivity {
                 tv.setTextColor(0xFFF5F6FA);
                 tv.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
+                Button copy = new Button(this);
+                copy.setText("Copy");
+                copy.setTextSize(10);
+                copy.setTextColor(0xFFFFFFFF);
+                copy.setBackgroundResource(R.drawable.bg_btn_flat);
+                copy.setOnClickListener(v -> {
+                    ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    cm.setPrimaryClip(ClipData.newPlainText("note", text));
+                    Toast.makeText(this, "Đã sao chép ghi chú", Toast.LENGTH_SHORT).show();
+                });
+
                 Button del = new Button(this);
                 del.setText("Xoá");
                 del.setTextSize(10);
@@ -524,6 +535,7 @@ public class MainActivity extends AppCompatActivity {
                 });
 
                 row.addView(tv);
+                row.addView(copy);
                 row.addView(del);
                 container.addView(row);
             } catch (Exception ignored) {}

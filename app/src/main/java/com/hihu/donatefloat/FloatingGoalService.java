@@ -31,7 +31,8 @@ public class FloatingGoalService extends Service {
     private WindowManager wm;
     private View floatView;
     private WindowManager.LayoutParams params;
-    private TextView titleView, subtitleView, countBadge, percentInBar, currentView, targetView;
+    private TextView titleView, subtitleView, countBadge, percentInBar, currentView, targetView, remainingView, titleEmoji;
+    private boolean celebratedAlready = false;
     private ProgressBar progressBar;
     private LockButtonWindow lockButton;
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -80,6 +81,8 @@ public class FloatingGoalService extends Service {
         subtitleView = floatView.findViewById(R.id.goalSubtitleView);
         currentView = floatView.findViewById(R.id.goalCurrentView);
         targetView = floatView.findViewById(R.id.goalTargetView);
+        remainingView = floatView.findViewById(R.id.goalRemainingView);
+        titleEmoji = floatView.findViewById(R.id.goalTitleEmoji);
         countBadge = floatView.findViewById(R.id.goalCountBadge);
         percentInBar = floatView.findViewById(R.id.goalPercentInBar);
         progressBar = floatView.findViewById(R.id.goalProgressBar);
@@ -133,6 +136,7 @@ public class FloatingGoalService extends Service {
         String note = Prefs.goalNote(this);
         subtitleView.setText(note);
         subtitleView.setVisibility(note.isEmpty() ? View.GONE : View.VISIBLE);
+        celebratedAlready = false; // đổi mục tiêu mới thì cho phép ăn mừng lại từ đầu
     }
 
     private void applySize() {
@@ -171,6 +175,23 @@ public class FloatingGoalService extends Service {
                     int percent = (int) Math.min(100, (result.total * 100L) / goal);
                     progressBar.setProgress((int) Math.min(1000, (result.total * 1000L) / goal));
                     percentInBar.setText(percent + "%");
+
+                    long remaining = goal - result.total;
+                    if (remaining > 0) {
+                        remainingView.setText(String.format("Còn thiếu %,d đ để đạt mục tiêu", remaining));
+                        remainingView.setVisibility(View.VISIBLE);
+                        countBadge.setBackgroundResource(R.drawable.bg_percent_badge);
+                        titleEmoji.setText("🎯");
+                    } else {
+                        remainingView.setText("🎉 Đã đạt mục tiêu!");
+                        remainingView.setVisibility(View.VISIBLE);
+                        countBadge.setBackgroundResource(R.drawable.bg_percent_badge_done);
+                        titleEmoji.setText("🏆");
+                        if (!celebratedAlready) {
+                            celebratedAlready = true;
+                            vibrateOnce();
+                        }
+                    }
                 });
             }
 
@@ -178,6 +199,18 @@ public class FloatingGoalService extends Service {
             public void onError(String message) {
             }
         });
+    }
+
+    private void vibrateOnce() {
+        try {
+            android.os.Vibrator vib = (android.os.Vibrator) getSystemService(VIBRATOR_SERVICE);
+            if (vib == null || !vib.hasVibrator()) return;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vib.vibrate(android.os.VibrationEffect.createOneShot(120, android.os.VibrationEffect.DEFAULT_AMPLITUDE));
+            } else {
+                vib.vibrate(120);
+            }
+        } catch (Exception ignored) {}
     }
 
     private int dp(int v) {
