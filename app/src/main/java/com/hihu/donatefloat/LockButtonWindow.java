@@ -42,13 +42,14 @@ public class LockButtonWindow {
                 : WindowManager.LayoutParams.TYPE_PHONE;
 
         buttonView = new TextView(ctx);
-        buttonView.setTextSize(11);
+        buttonView.setTextSize(13);
         buttonView.setTextColor(0xFFFFFFFF);
         buttonView.setGravity(Gravity.CENTER);
-        buttonView.setBackgroundResource(R.drawable.bg_lock_button);
-        buttonView.setElevation(dp(3));
+        buttonView.setBackground(null);
+        buttonView.setShadowLayer(4f, 0f, 1f, 0xCC000000);
+        buttonView.setElevation(dp(2));
 
-        int sizePx = dp(24);
+        int sizePx = dp(22);
         buttonParams = new WindowManager.LayoutParams(
                 sizePx, sizePx, type,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
@@ -90,16 +91,15 @@ public class LockButtonWindow {
     private void refreshIcon() {
         boolean locked = Prefs.panelLocked(ctx, lockKey);
         buttonView.setText(locked ? "🔒" : "🔓");
-        buttonView.setBackgroundResource(locked ? R.drawable.bg_lock_button_locked : R.drawable.bg_lock_button);
     }
 
     /** Gọi mỗi khi panel chính di chuyển/đổi kích thước để nút khoá luôn
-     * bám theo panel dạng badge nhỏ đè nửa lên góc trên-phải (không tách
-     * rời trôi nổi phía trên nữa, nhìn liền mạch với panel hơn). */
+     * nằm gọn BÊN TRONG góc trên-phải của panel (không trồi ra ngoài
+     * nữa), giống một icon góc thật sự thuộc về panel. */
     public void updatePosition() {
         if (buttonParams == null) return;
         buttonParams.x = mainParams.x + mainParams.width - buttonParams.width - dp(6);
-        buttonParams.y = mainParams.y - (buttonParams.height / 2);
+        buttonParams.y = mainParams.y + dp(4);
         if (added) {
             try { wm.updateViewLayout(buttonView, buttonParams); } catch (Exception ignored) {}
         }
