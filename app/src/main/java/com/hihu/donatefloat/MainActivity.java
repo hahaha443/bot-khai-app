@@ -527,7 +527,7 @@ public class MainActivity extends AppCompatActivity {
                 copy.setTextColor(0xFFE2E8F0);
                 copy.setBackgroundResource(R.drawable.bg_btn_flat);
                 LinearLayout.LayoutParams copyLp = new LinearLayout.LayoutParams(dpToPx(56), dpToPx(34));
-                copyLp.marginStart = dpToPx(6);
+                copyLp.setMarginStart(dpToPx(6));
                 copy.setLayoutParams(copyLp);
                 copy.setOnClickListener(v -> {
                     ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
@@ -541,7 +541,7 @@ public class MainActivity extends AppCompatActivity {
                 del.setTextColor(0xFFFCA5A5);
                 del.setBackgroundResource(R.drawable.bg_btn_warn_small);
                 LinearLayout.LayoutParams delLp = new LinearLayout.LayoutParams(dpToPx(50), dpToPx(34));
-                delLp.marginStart = dpToPx(6);
+                delLp.setMarginStart(dpToPx(6));
                 del.setLayoutParams(delLp);
                 del.setOnClickListener(v -> {
                     removeNoteFromList(id);
