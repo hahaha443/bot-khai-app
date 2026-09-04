@@ -5,28 +5,29 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 
-/** Kéo thanh ngang trên đỉnh để di chuyển panel — chỉ hoạt động khi
- * panel CHƯA bị khoá. Việc khoá/mở khoá nằm riêng ở TapLockListener gắn
- * trong vùng nội dung. Cập nhật vị trí trực tiếp mỗi lần chạm di chuyển
- * để đảm bảo luôn bắt được thao tác kéo (không trễ khung hình). */
+/** Kéo thanh ngang trên đỉnh để di chuyển panel. Việc khoá/mở khoá panel
+ * giờ dùng nút riêng (LockButtonWindow) — khi panel bị khoá, cả cửa sổ
+ * panel không nhận chạm nữa (xuyên thẳng xuống app/game bên dưới) nên
+ * không cần tự kiểm tra khoá ở đây nữa. onMoved (có thể null) được gọi
+ * sau mỗi lần cập nhật vị trí, dùng để dịch nút khoá đi theo panel. */
 public class DragLockListener implements View.OnTouchListener {
 
     private final Context ctx;
     private final WindowManager.LayoutParams params;
     private final WindowManager wm;
     private final View target;
-    private final String lockKey;
+    private final Runnable onMoved;
 
     private int initialX, initialY;
     private float initialTouchX, initialTouchY;
 
     public DragLockListener(Context ctx, WindowManager.LayoutParams params, WindowManager wm,
-                             View target, String lockKey) {
+                             View target, Runnable onMoved) {
         this.ctx = ctx;
         this.params = params;
         this.wm = wm;
         this.target = target;
-        this.lockKey = lockKey;
+        this.onMoved = onMoved;
     }
 
     @Override
@@ -39,11 +40,10 @@ public class DragLockListener implements View.OnTouchListener {
                 initialTouchY = event.getRawY();
                 return true;
             case MotionEvent.ACTION_MOVE:
-                if (!Prefs.panelLocked(ctx, lockKey)) {
-                    params.x = initialX + (int) (event.getRawX() - initialTouchX);
-                    params.y = initialY + (int) (event.getRawY() - initialTouchY);
-                    try { wm.updateViewLayout(target, params); } catch (Exception ignored) {}
-                }
+                params.x = initialX + (int) (event.getRawX() - initialTouchX);
+                params.y = initialY + (int) (event.getRawY() - initialTouchY);
+                try { wm.updateViewLayout(target, params); } catch (Exception ignored) {}
+                if (onMoved != null) onMoved.run();
                 return true;
         }
         return false;

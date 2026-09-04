@@ -31,8 +31,9 @@ public class FloatingGoalService extends Service {
     private WindowManager wm;
     private View floatView;
     private WindowManager.LayoutParams params;
-    private TextView titleView, subtitleView, countBadge, percentInBar;
+    private TextView titleView, subtitleView, countBadge, percentInBar, currentView;
     private ProgressBar progressBar;
+    private LockButtonWindow lockButton;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable poller = this::poll;
 
@@ -77,6 +78,7 @@ public class FloatingGoalService extends Service {
         floatView = LayoutInflater.from(this).inflate(R.layout.floating_goal, null);
         titleView = floatView.findViewById(R.id.goalTitleView);
         subtitleView = floatView.findViewById(R.id.goalSubtitleView);
+        currentView = floatView.findViewById(R.id.goalCurrentView);
         countBadge = floatView.findViewById(R.id.goalCountBadge);
         percentInBar = floatView.findViewById(R.id.goalPercentInBar);
         progressBar = floatView.findViewById(R.id.goalProgressBar);
@@ -98,27 +100,29 @@ public class FloatingGoalService extends Service {
         if (Prefs.overlaysHidden(this)) floatView.setVisibility(View.GONE);
 
         View dragHandleGoal = floatView.findViewById(R.id.dragHandleGoal);
-        dragHandleGoal.setOnTouchListener(new DragLockListener(this, params, wm, floatView, "goal"));
-        LockToggleCounter lockCounter = new LockToggleCounter(this, "goal");
-        floatView.findViewById(R.id.goalContentArea).setOnTouchListener(new TapLockListener(lockCounter));
+        lockButton = new LockButtonWindow(this, wm, "goal", floatView, params);
+        dragHandleGoal.setOnTouchListener(new DragLockListener(this, params, wm, floatView,
+                () -> lockButton.updatePosition()));
+        lockButton.create();
 
         int min = dp(120);
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setGoalSizeDp(this, pxToDp(w));
             Prefs.setGoalHeightDp(this, pxToDp(h));
         };
-        bindCorner(R.id.resizeGoalTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized, lockCounter);
-        bindCorner(R.id.resizeGoalTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized, lockCounter);
-        bindCorner(R.id.resizeGoalBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, onResized, lockCounter);
-        bindCorner(R.id.resizeGoalBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, onResized, lockCounter);
+        bindCorner(R.id.resizeGoalTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized);
+        bindCorner(R.id.resizeGoalTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized);
+        bindCorner(R.id.resizeGoalBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, onResized);
+        bindCorner(R.id.resizeGoalBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, onResized);
 
         handler.post(poller);
     }
 
     private void bindCorner(int viewId, CornerResizeListener.Corner corner, int min,
-                             CornerResizeListener.OnResized onResized, LockToggleCounter lockCounter) {
+                             CornerResizeListener.OnResized onResized) {
         View v = floatView.findViewById(viewId);
-        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, "goal", lockCounter));
+        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized,
+                () -> lockButton.updatePosition()));
     }
 
     private void applyConfig() {
@@ -135,6 +139,7 @@ public class FloatingGoalService extends Service {
         params.width = dp(Prefs.goalSizeDp(this));
         params.height = dp(Prefs.goalHeightDp(this));
         wm.updateViewLayout(floatView, params);
+        if (lockButton != null) lockButton.updatePosition();
     }
 
     private void applyOpacity() {
@@ -160,6 +165,7 @@ public class FloatingGoalService extends Service {
             public void onSuccess(ApiClient.Stats result) {
                 handler.post(() -> {
                     long goal = Math.max(1, Prefs.goalAmount(FloatingGoalService.this));
+                    currentView.setText(String.format("%,d đ  •  Mục tiêu %,d đ", result.total, goal));
                     countBadge.setText(result.count + " lượt");
                     int percent = (int) Math.min(100, (result.total * 100L) / goal);
                     progressBar.setProgress((int) Math.min(1000, (result.total * 1000L) / goal));
@@ -205,6 +211,7 @@ public class FloatingGoalService extends Service {
         running = false;
         instance = null;
         handler.removeCallbacks(poller);
+        if (lockButton != null) lockButton.destroy();
         if (wm != null && floatView != null) wm.removeView(floatView);
     }
 }

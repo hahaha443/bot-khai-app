@@ -34,6 +34,7 @@ public class FloatingQRService extends Service {
     private ImageView qrImage;
     private android.widget.LinearLayout qrPanel;
     private TextView statusText;
+    private LockButtonWindow lockButton;
     
     private final Handler handler = new Handler(Looper.getMainLooper());
 
@@ -89,30 +90,32 @@ public class FloatingQRService extends Service {
         if (Prefs.overlaysHidden(this)) floatView.setVisibility(View.GONE);
 
         View dragHandleQr = floatView.findViewById(R.id.dragHandleQr);
-        dragHandleQr.setOnTouchListener(new DragLockListener(this, params, wm, floatView, "qr"));
-        LockToggleCounter lockCounter = new LockToggleCounter(this, "qr");
-        qrImage.setOnTouchListener(new TapLockListener(lockCounter));
+        lockButton = new LockButtonWindow(this, wm, "qr", floatView, params);
+        dragHandleQr.setOnTouchListener(new DragLockListener(this, params, wm, floatView,
+                () -> lockButton.updatePosition()));
+        lockButton.create();
 
-        wireCornerResize(lockCounter);
+        wireCornerResize();
         loadStaticQr();
     }
 
-    private void wireCornerResize(LockToggleCounter lockCounter) {
+    private void wireCornerResize() {
         int min = dp(80);
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setQrSizeDp(this, pxToDp(w));
             Prefs.setQrHeightDp(this, pxToDp(h));
         };
-        bindCorner(R.id.resizeQrTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized, lockCounter);
-        bindCorner(R.id.resizeQrTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized, lockCounter);
-        bindCorner(R.id.resizeQrBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, onResized, lockCounter);
-        bindCorner(R.id.resizeQrBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, onResized, lockCounter);
+        bindCorner(R.id.resizeQrTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized);
+        bindCorner(R.id.resizeQrTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized);
+        bindCorner(R.id.resizeQrBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, onResized);
+        bindCorner(R.id.resizeQrBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, onResized);
     }
 
     private void bindCorner(int viewId, CornerResizeListener.Corner corner, int min,
-                             CornerResizeListener.OnResized onResized, LockToggleCounter lockCounter) {
+                             CornerResizeListener.OnResized onResized) {
         View v = floatView.findViewById(viewId);
-        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, "qr", lockCounter));
+        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized,
+                () -> lockButton.updatePosition()));
     }
 
     private void loadStaticQr() {
@@ -157,6 +160,7 @@ public class FloatingQRService extends Service {
         params.width = dp(Prefs.qrSizeDp(this));
         params.height = dp(Prefs.qrHeightDp(this));
         wm.updateViewLayout(floatView, params);
+        if (lockButton != null) lockButton.updatePosition();
     }
 
     private void applyOpacity() {
@@ -197,6 +201,7 @@ public class FloatingQRService extends Service {
         super.onDestroy();
         running = false;
         instance = null;
+        if (lockButton != null) lockButton.destroy();
         if (wm != null && floatView != null) wm.removeView(floatView);
     }
 }

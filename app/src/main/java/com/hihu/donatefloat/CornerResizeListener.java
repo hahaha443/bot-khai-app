@@ -1,16 +1,13 @@
 package com.hihu.donatefloat;
 
-import android.content.Context;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 
-/** Cho phép kéo resize từ 1 trong 4 góc, neo góc đối diện đứng yên —
- * không cần icon/nút hiển thị, chỉ cần 1 vùng chạm nhỏ trong suốt đặt ở
- * góc tương ứng. Nếu panel đang bị khoá thì bỏ qua thao tác KÉO (không
- * resize), nhưng vẫn nhận CHẠM NHẸ để cộng dồn vào bộ đếm khoá/mở khoá
- * dùng chung của panel (counter) — nhờ vậy chạm 3 lần ở góc cũng khoá/mở
- * khoá được y như chạm ở vùng nội dung. */
+/** Cho phép kéo resize từ 1 trong 4 góc, neo góc đối diện đứng yên.
+ * Khi panel bị khoá, cả cửa sổ không nhận chạm nên không cần tự kiểm
+ * tra khoá ở đây. onMoved (có thể null) được gọi mỗi lần kích thước
+ * thay đổi để cập nhật vị trí nút khoá đi theo panel. */
 public class CornerResizeListener implements View.OnTouchListener {
 
     public enum Corner { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT }
@@ -19,42 +16,31 @@ public class CornerResizeListener implements View.OnTouchListener {
         void onResized(int widthPx, int heightPx);
     }
 
-    private static final int TAP_SLOP_PX = 18;
-
     private final WindowManager.LayoutParams params;
     private final WindowManager wm;
     private final View target;
     private final Corner corner;
     private final int minPx;
     private final OnResized onResized;
-    private final Context ctx;
-    private final String lockKey;
-    private final LockToggleCounter counter;
+    private final Runnable onMoved;
 
     private int initialWidth, initialHeight, initialX, initialY;
     private float initialTouchX, initialTouchY;
 
     public CornerResizeListener(WindowManager.LayoutParams params, WindowManager wm, View target,
                                  Corner corner, int minPx, OnResized onResized) {
-        this(params, wm, target, corner, minPx, onResized, null, null, null);
+        this(params, wm, target, corner, minPx, onResized, null);
     }
 
     public CornerResizeListener(WindowManager.LayoutParams params, WindowManager wm, View target,
-                                 Corner corner, int minPx, OnResized onResized,
-                                 Context ctx, String lockKey, LockToggleCounter counter) {
+                                 Corner corner, int minPx, OnResized onResized, Runnable onMoved) {
         this.params = params;
         this.wm = wm;
         this.target = target;
         this.corner = corner;
         this.minPx = minPx;
         this.onResized = onResized;
-        this.ctx = ctx;
-        this.lockKey = lockKey;
-        this.counter = counter;
-    }
-
-    private boolean isLocked() {
-        return lockKey != null && ctx != null && Prefs.panelLocked(ctx, lockKey);
+        this.onMoved = onMoved;
     }
 
     @Override
@@ -70,7 +56,6 @@ public class CornerResizeListener implements View.OnTouchListener {
                 return true;
 
             case MotionEvent.ACTION_MOVE: {
-                if (isLocked()) return true;
                 float dx = event.getRawX() - initialTouchX;
                 float dy = event.getRawY() - initialTouchY;
 
@@ -120,19 +105,13 @@ public class CornerResizeListener implements View.OnTouchListener {
                 params.x = newX;
                 params.y = newY;
                 try { wm.updateViewLayout(target, params); } catch (Exception ignored) {}
+                if (onMoved != null) onMoved.run();
                 return true;
             }
 
-            case MotionEvent.ACTION_UP: {
-                float dx = Math.abs(event.getRawX() - initialTouchX);
-                float dy = Math.abs(event.getRawY() - initialTouchY);
-                if (dx < TAP_SLOP_PX && dy < TAP_SLOP_PX) {
-                    if (counter != null) counter.registerTap();
-                } else if (!isLocked() && onResized != null) {
-                    onResized.onResized(params.width, params.height);
-                }
+            case MotionEvent.ACTION_UP:
+                if (onResized != null) onResized.onResized(params.width, params.height);
                 return true;
-            }
         }
         return false;
     }

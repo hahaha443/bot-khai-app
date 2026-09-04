@@ -31,7 +31,7 @@ public class FloatingNoteService extends Service {
 
     private WindowManager wm;
     private final List<View> windows = new ArrayList<>();
-    
+    private final List<LockButtonWindow> lockButtons = new ArrayList<>();
 
     public static boolean isRunning() { return running; }
 
@@ -124,34 +124,39 @@ public class FloatingNoteService extends Service {
 
         String lockKey = "note_" + id;
         View dragHandleNote = floatView.findViewById(R.id.dragHandleNote);
-        dragHandleNote.setOnTouchListener(new DragLockListener(this, params, wm, floatView, lockKey));
-        LockToggleCounter lockCounter = new LockToggleCounter(this, lockKey);
-        contentView.setOnTouchListener(new TapLockListener(lockCounter));
+        LockButtonWindow lockButton = new LockButtonWindow(this, wm, lockKey, floatView, params);
+        dragHandleNote.setOnTouchListener(new DragLockListener(this, params, wm, floatView,
+                () -> lockButton.updatePosition()));
+        lockButton.create();
+        lockButtons.add(lockButton);
 
         int min = dp(60);
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setNoteSizeDp(this, pxToDp(w));
             Prefs.setNoteHeightDp(this, pxToDp(h));
         };
-        bindCorner(floatView, R.id.resizeNoteTL, CornerResizeListener.Corner.TOP_LEFT, min, params, onResized, lockKey, lockCounter);
-        bindCorner(floatView, R.id.resizeNoteTR, CornerResizeListener.Corner.TOP_RIGHT, min, params, onResized, lockKey, lockCounter);
-        bindCorner(floatView, R.id.resizeNoteBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, params, onResized, lockKey, lockCounter);
-        bindCorner(floatView, R.id.resizeNoteBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, params, onResized, lockKey, lockCounter);
+        bindCorner(floatView, R.id.resizeNoteTL, CornerResizeListener.Corner.TOP_LEFT, min, params, onResized, lockButton);
+        bindCorner(floatView, R.id.resizeNoteTR, CornerResizeListener.Corner.TOP_RIGHT, min, params, onResized, lockButton);
+        bindCorner(floatView, R.id.resizeNoteBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, params, onResized, lockButton);
+        bindCorner(floatView, R.id.resizeNoteBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, params, onResized, lockButton);
     }
 
     private void bindCorner(View floatView, int viewId, CornerResizeListener.Corner corner, int min,
                              WindowManager.LayoutParams params, CornerResizeListener.OnResized onResized,
-                             String lockKey, LockToggleCounter lockCounter) {
+                             LockButtonWindow lockButton) {
         View v = floatView.findViewById(viewId);
-        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, lockKey, lockCounter));
+        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized,
+                () -> lockButton.updatePosition()));
     }
 
     private void applyAllSize() {
-        for (View v : windows) {
+        for (int i = 0; i < windows.size(); i++) {
+            View v = windows.get(i);
             WindowManager.LayoutParams p = (WindowManager.LayoutParams) v.getTag();
             p.width = dp(Prefs.noteSizeDp(this));
             p.height = dp(Prefs.noteHeightDp(this));
             try { wm.updateViewLayout(v, p); } catch (Exception ignored) {}
+            if (i < lockButtons.size()) lockButtons.get(i).updatePosition();
         }
     }
 
@@ -181,6 +186,8 @@ public class FloatingNoteService extends Service {
             try { wm.removeView(v); } catch (Exception ignored) {}
         }
         windows.clear();
+        for (LockButtonWindow lb : lockButtons) lb.destroy();
+        lockButtons.clear();
     }
 
     private List<String[]> readNotes() {

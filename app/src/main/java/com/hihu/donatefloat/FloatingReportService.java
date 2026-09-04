@@ -38,6 +38,7 @@ public class FloatingReportService extends Service {
     private WindowManager.LayoutParams params;
     private LinearLayout list;
     private View alertView;
+    private LockButtonWindow lockButton;
     
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable poller = this::poll;
@@ -106,30 +107,32 @@ public class FloatingReportService extends Service {
         if (Prefs.overlaysHidden(this)) floatView.setVisibility(View.GONE);
 
         View dragHandleReport = floatView.findViewById(R.id.dragHandleReport);
-        dragHandleReport.setOnTouchListener(new DragLockListener(this, params, wm, floatView, "report"));
-        LockToggleCounter lockCounter = new LockToggleCounter(this, "report");
-        list.setOnTouchListener(new TapLockListener(lockCounter));
+        lockButton = new LockButtonWindow(this, wm, "report", floatView, params);
+        dragHandleReport.setOnTouchListener(new DragLockListener(this, params, wm, floatView,
+                () -> lockButton.updatePosition()));
+        lockButton.create();
 
-        wireCornerResize(lockCounter);
+        wireCornerResize();
         handler.post(poller);
     }
 
-    private void wireCornerResize(LockToggleCounter lockCounter) {
+    private void wireCornerResize() {
         int min = dp(60);
         CornerResizeListener.OnResized onResized = (w, h) -> {
             Prefs.setReportSizeDp(this, pxToDp(w));
             Prefs.setReportHeightDp(this, pxToDp(h));
         };
-        bindCorner(R.id.resizeReportTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized, lockCounter);
-        bindCorner(R.id.resizeReportTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized, lockCounter);
-        bindCorner(R.id.resizeReportBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, onResized, lockCounter);
-        bindCorner(R.id.resizeReportBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, onResized, lockCounter);
+        bindCorner(R.id.resizeReportTL, CornerResizeListener.Corner.TOP_LEFT, min, onResized);
+        bindCorner(R.id.resizeReportTR, CornerResizeListener.Corner.TOP_RIGHT, min, onResized);
+        bindCorner(R.id.resizeReportBL, CornerResizeListener.Corner.BOTTOM_LEFT, min, onResized);
+        bindCorner(R.id.resizeReportBR, CornerResizeListener.Corner.BOTTOM_RIGHT, min, onResized);
     }
 
     private void bindCorner(int viewId, CornerResizeListener.Corner corner, int min,
-                             CornerResizeListener.OnResized onResized, LockToggleCounter lockCounter) {
+                             CornerResizeListener.OnResized onResized) {
         View v = floatView.findViewById(viewId);
-        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized, this, "report", lockCounter));
+        v.setOnTouchListener(new CornerResizeListener(params, wm, floatView, corner, min, onResized,
+                () -> lockButton.updatePosition()));
     }
 
     private void applySize() {
@@ -137,6 +140,7 @@ public class FloatingReportService extends Service {
         params.width = dp(Prefs.reportSizeDp(this));
         params.height = dp(Prefs.reportHeightDp(this));
         wm.updateViewLayout(floatView, params);
+        if (lockButton != null) lockButton.updatePosition();
     }
 
     private void applyBgOpacity() {
@@ -272,6 +276,7 @@ public class FloatingReportService extends Service {
         if (alertView != null) {
             try { wm.removeView(alertView); } catch (Exception ignored) {}
         }
+        if (lockButton != null) lockButton.destroy();
         if (wm != null && floatView != null) wm.removeView(floatView);
     }
 }
