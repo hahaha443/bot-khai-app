@@ -1,16 +1,19 @@
 package com.hihu.donatefloat;
 
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.ServiceConnection;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
+import android.os.IBinder;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -85,15 +88,51 @@ public class RamCpuChecker {
         }
     }
 
-    private static String runCommand(String... cmd) throws Exception {
-        Process process = Shizuku.newProcess(cmd, null, null);
-        StringBuilder out = new StringBuilder();
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = r.readLine()) != null) out.append(line).append('\n');
+    private static IUserService userService;
+    private static final Object BIND_LOCK = new Object();
+
+    private static IUserService ensureUserService() throws Exception {
+        synchronized (BIND_LOCK) {
+            if (userService != null) return userService;
+
+            final CountDownLatch latch = new CountDownLatch(1);
+            Shizuku.UserServiceArgs args = new Shizuku.UserServiceArgs(
+                    new ComponentName(BuildConfig.APPLICATION_ID, UserService.class.getName()))
+                    .daemon(false)
+                    .processNameSuffix("ramcpu")
+                    .debuggable(BuildConfig.DEBUG)
+                    .version(1);
+
+            ServiceConnection connection = new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName name, IBinder binder) {
+                    userService = IUserService.Stub.asInterface(binder);
+                    latch.countDown();
+                }
+
+                @Override
+                public void onServiceDisconnected(ComponentName name) {
+                    userService = null;
+                }
+            };
+
+            Shizuku.bindUserService(args, connection);
+            if (!latch.await(5, TimeUnit.SECONDS)) {
+                throw new Exception("Kết nối UserService quá thời gian chờ (timeout)");
+            }
+            if (userService == null) {
+                throw new Exception("Không kết nối được UserService");
+            }
+            return userService;
         }
-        process.waitFor();
-        return out.toString();
+    }
+
+    private static String runCommand(String... cmd) throws Exception {
+        String result = ensureUserService().exec(cmd);
+        if (result != null && result.startsWith("__ERROR__:")) {
+            throw new Exception(result.substring("__ERROR__:".length()));
+        }
+        return result;
     }
 
     /** Danh sách gộp RAM+CPU từng app, kèm tên/icon thật, sắp theo sortBy. */
