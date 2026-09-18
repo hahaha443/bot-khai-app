@@ -4,14 +4,17 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public class AppUsageAdapter extends RecyclerView.Adapter<AppUsageAdapter.ViewHolder> {
 
@@ -19,12 +22,39 @@ public class AppUsageAdapter extends RecyclerView.Adapter<AppUsageAdapter.ViewHo
         void onForceStop(RamCpuChecker.AppUsage app);
     }
 
-    private final List<RamCpuChecker.AppUsage> items;
-    private final OnForceStopClick listener;
+    public interface OnSelectionChanged {
+        void onSelectionChanged(Set<String> selectedPackages);
+    }
 
-    public AppUsageAdapter(List<RamCpuChecker.AppUsage> items, OnForceStopClick listener) {
+    private final List<RamCpuChecker.AppUsage> items;
+    private final OnForceStopClick stopListener;
+    private final OnSelectionChanged selectionListener;
+    private final Set<String> selected = new HashSet<>();
+
+    public AppUsageAdapter(List<RamCpuChecker.AppUsage> items,
+                            OnForceStopClick stopListener,
+                            OnSelectionChanged selectionListener) {
         this.items = items;
-        this.listener = listener;
+        this.stopListener = stopListener;
+        this.selectionListener = selectionListener;
+    }
+
+    /** Gọi khi danh sách bị lọc/làm mới, để bỏ chọn những package không còn hiển thị nữa. */
+    public void pruneSelection() {
+        Set<String> visible = new HashSet<>();
+        for (RamCpuChecker.AppUsage a : items) visible.add(a.packageName);
+        selected.retainAll(visible);
+        if (selectionListener != null) selectionListener.onSelectionChanged(selected);
+    }
+
+    public void clearSelection() {
+        selected.clear();
+        notifyDataSetChanged();
+        if (selectionListener != null) selectionListener.onSelectionChanged(selected);
+    }
+
+    public Set<String> getSelected() {
+        return selected;
     }
 
     @NonNull
@@ -50,9 +80,16 @@ public class AppUsageAdapter extends RecyclerView.Adapter<AppUsageAdapter.ViewHo
             holder.icon.setImageResource(R.drawable.ic_launcher);
         }
 
-        // App hệ thống lõi: vẫn cho buộc dừng nhưng cảnh báo rõ trong dialog xác nhận
+        holder.checkBox.setOnCheckedChangeListener(null);
+        holder.checkBox.setChecked(selected.contains(app.packageName));
+        holder.checkBox.setOnCheckedChangeListener((btn, checked) -> {
+            if (checked) selected.add(app.packageName);
+            else selected.remove(app.packageName);
+            if (selectionListener != null) selectionListener.onSelectionChanged(selected);
+        });
+
         holder.btnForceStop.setOnClickListener(v -> {
-            if (listener != null) listener.onForceStop(app);
+            if (stopListener != null) stopListener.onForceStop(app);
         });
     }
 
@@ -65,6 +102,7 @@ public class AppUsageAdapter extends RecyclerView.Adapter<AppUsageAdapter.ViewHo
         ImageView icon;
         TextView label, pkg, stats;
         Button btnForceStop;
+        CheckBox checkBox;
 
         ViewHolder(View itemView) {
             super(itemView);
@@ -73,6 +111,7 @@ public class AppUsageAdapter extends RecyclerView.Adapter<AppUsageAdapter.ViewHo
             pkg = itemView.findViewById(R.id.textAppPackage);
             stats = itemView.findViewById(R.id.textAppStats);
             btnForceStop = itemView.findViewById(R.id.btnForceStop);
+            checkBox = itemView.findViewById(R.id.checkSelect);
         }
     }
 }
