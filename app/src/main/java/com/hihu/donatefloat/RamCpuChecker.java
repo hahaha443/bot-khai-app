@@ -35,17 +35,31 @@ public class RamCpuChecker {
         public final Drawable icon;
         public final long pssKb;
         public final float cpuPercent;
-        public final boolean isSystemApp;
+        public final boolean isSystemApp;      // dùng để cảnh báo trước khi buộc dừng
+        public final boolean hasLauncherIcon;   // dùng để chia tab "người dùng" / "hệ thống"
 
         public AppUsage(String packageName, String label, Drawable icon,
-                         long pssKb, float cpuPercent, boolean isSystemApp) {
+                         long pssKb, float cpuPercent, boolean isSystemApp, boolean hasLauncherIcon) {
             this.packageName = packageName;
             this.label = label;
             this.icon = icon;
             this.pssKb = pssKb;
             this.cpuPercent = cpuPercent;
             this.isSystemApp = isSystemApp;
+            this.hasLauncherIcon = hasLauncherIcon;
         }
+    }
+
+    /** Quy đổi KB sang KB/MB/GB/TB cho dễ đọc. */
+    public static String formatSize(long kb) {
+        double v = kb;
+        String[] units = {"KB", "MB", "GB", "TB"};
+        int i = 0;
+        while (v >= 1024 && i < units.length - 1) {
+            v /= 1024;
+            i++;
+        }
+        return String.format(java.util.Locale.getDefault(), "%.2f %s", v, units[i]);
     }
 
     public enum SortBy { RAM, CPU }
@@ -187,17 +201,33 @@ public class RamCpuChecker {
             String label = pkg;
             Drawable icon = null;
             boolean isSystem = true;
+            boolean hasLauncher = false;
             try {
                 ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
                 label = pm.getApplicationLabel(ai).toString();
                 icon = pm.getApplicationIcon(ai);
                 isSystem = (ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
+                hasLauncher = pm.getLaunchIntentForPackage(pkg) != null;
             } catch (PackageManager.NameNotFoundException ignored) {
                 // Process hệ thống không phải 1 package cài đặt thật (vd: system, zygote...)
+                // hoặc là process con dạng "package:tên_process" — thử tách phần trước ":"
+                // để vẫn lấy được tên/icon của app gốc.
+                int colon = pkg.indexOf(':');
+                if (colon > 0) {
+                    String basePkg = pkg.substring(0, colon);
+                    try {
+                        ApplicationInfo ai = pm.getApplicationInfo(basePkg, 0);
+                        label = pm.getApplicationLabel(ai).toString() + " (" + pkg.substring(colon + 1) + ")";
+                        icon = pm.getApplicationIcon(ai);
+                        isSystem = (ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
+                        hasLauncher = pm.getLaunchIntentForPackage(basePkg) != null;
+                    } catch (PackageManager.NameNotFoundException ignored2) {
+                    }
+                }
             }
             long pss = ramByPkg.getOrDefault(pkg, 0L);
             float cpu = cpuByPkg.getOrDefault(pkg, 0f);
-            merged.put(pkg, new AppUsage(pkg, label, icon, pss, cpu, isSystem));
+            merged.put(pkg, new AppUsage(pkg, label, icon, pss, cpu, isSystem, hasLauncher));
         }
 
         List<AppUsage> result = new ArrayList<>(merged.values());

@@ -72,7 +72,7 @@ public class AppUsageAdapter extends RecyclerView.Adapter<AppUsageAdapter.ViewHo
         holder.label.setText(app.label);
         holder.pkg.setText(app.packageName);
         holder.stats.setText(String.format(Locale.getDefault(),
-                "RAM: %,d KB   •   CPU: %.1f%%", app.pssKb, app.cpuPercent));
+                "RAM: %s   •   CPU: %.1f%%", RamCpuChecker.formatSize(app.pssKb), app.cpuPercent));
 
         if (app.icon != null) {
             holder.icon.setImageDrawable(app.icon);

@@ -214,7 +214,7 @@ public class RamCpuActivity extends AppCompatActivity {
 
         List<RamCpuChecker.AppUsage> filtered = new ArrayList<>();
         for (RamCpuChecker.AppUsage a : allData) {
-            boolean matchesTab = currentTab == Tab.USER ? !a.isSystemApp : a.isSystemApp;
+            boolean matchesTab = currentTab == Tab.USER ? a.hasLauncherIcon : !a.hasLauncherIcon;
             if (!matchesTab) continue;
             boolean matchesQuery = query.isEmpty()
                     || a.label.toLowerCase(Locale.getDefault()).contains(query)
