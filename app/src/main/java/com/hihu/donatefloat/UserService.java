@@ -8,7 +8,7 @@ import java.io.InputStreamReader;
  * Vì cả tiến trình này đã chạy với quyền shell, Runtime.exec() bình thường
  * ở đây vẫn đọc được dumpsys/top của app khác — không cần thêm gì đặc biệt.
  */
-public class UserService implements IUserService {
+public class UserService extends IUserService.Stub {
 
     // Constructor không tham số — bắt buộc, Shizuku dùng reflection để khởi tạo.
     public UserService() {
