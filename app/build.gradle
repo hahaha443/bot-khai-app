@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.hihu.donatefloat'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.hihu.donatefloat"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    // Khoá ký CỐ ĐỊNH — dùng chung cho mọi lần build (kể cả trên CI khác máy)
+    // để APK mới luôn cùng chữ ký với bản cũ, cài ĐÈ được, khỏi cần gỡ cài lại.
+    signingConfigs {
+        release {
+            storeFile file("debug.keystore")
+            storePassword "donatefloat123"
+            keyAlias "donatefloatkey"
+            keyPassword "donatefloat123"
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.release
+        }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'dev.rikka.shizuku:api:13.1.5'
+    implementation 'dev.rikka.shizuku:provider:13.1.5'
+}
