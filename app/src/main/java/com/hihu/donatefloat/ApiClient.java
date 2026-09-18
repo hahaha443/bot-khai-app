@@ -181,7 +181,7 @@ public class ApiClient {
                 InputStream in = conn.getInputStream();
                 Bitmap bmp = BitmapFactory.decodeStream(in);
                 if (bmp != null) cb.onSuccess(bmp);
-                else cb.onError("Không giải mã đượjjjc ảnh QR");
+                else cb.onError("Không giải mã đượjjjc ddảnh QR");
             } catch (Exception e) {
                 cb.onError(e.getMessage());
             }
